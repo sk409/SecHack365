@@ -14,4 +14,6 @@ func init() {
 		panic(err)
 	}
 	db.AutoMigrate(user{})
+	db.AutoMigrate(lesson{}).AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE")
+	db.AutoMigrate(lessonPort{}).AddForeignKey("lesson_id", "lessons(id)", "CASCADE", "CASCADE")
 }

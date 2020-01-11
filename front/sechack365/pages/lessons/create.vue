@@ -24,8 +24,12 @@
             required
             label="OS"
           ></v-select>
+          <v-text-field
+            v-model="consolePort"
+            type="number"
+            label="コンソール用のポート"
+          ></v-text-field>
           <v-text-field v-model="ports" label="公開するポート"></v-text-field>
-          <!-- <v-text-field type="number" label="コンソール用のポート"></v-text-field> -->
         </v-form>
         <v-card-actions>
           <v-btn depressed color="primary" class="mx-auto" @click="submit"
@@ -38,9 +42,17 @@
 </template>
 
 <script>
+import ajax from "@/assets/js/ajax.js";
+import { Url, urlLessons } from "@/assets/js/url.js";
 export default {
   data() {
     return {
+      consolePort: "",
+      consolePortRules: [
+        v => !!v || "コンソール用のポートを入力してください",
+        v => 1024 <= v || "ウェルノウンポートは指定できません",
+        v => v <= 65535 || "65535以下の値を入力してください"
+      ],
       description: "",
       descriptionRules: [
         v => !!v || "説明文を入力してください",
@@ -60,6 +72,16 @@ export default {
   methods: {
     submit() {
       if (this.$refs.form.validate()) {
+        const url = new Url(urlLessons);
+        const data = {
+          title: this.title,
+          description: this.description,
+          consolePort: this.consolePort,
+          userId: this.$store.state.users.user.ID
+        };
+        ajax.post(url.base, data).then(response => {
+          console.log(response);
+        });
       }
     }
   }

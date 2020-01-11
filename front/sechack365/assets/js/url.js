@@ -21,19 +21,15 @@
 
 // export const urlUsers
 
+export const urlLessons = "lessons";
 export const urlLogin = "login";
 export const urlLogout = "logout";
 export const urlRegister = "register";
-export const urlUser = "user"
+export const urlUser = "user";
 export const urlUsers = "users";
 
 export class Url {
-
   constructor(type) {
-    switch (type) {
-      default:
-        this.base = process.env.serverOrigin + "/" + type;
-    }
+    this.base = process.env.serverOrigin + "/" + type;
   }
-
 }

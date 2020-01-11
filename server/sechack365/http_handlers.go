@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -67,6 +68,74 @@ func (l *loginHandler) login(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, u)
 }
 
+type lessonsHandler struct {
+}
+
+func (l *lessonsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodPost:
+		l.store(w, r)
+	default:
+		respond(w, http.StatusNotFound)
+	}
+}
+
+func (l *lessonsHandler) store(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	title := r.PostFormValue("title")
+	description := r.PostFormValue("description")
+	consolePort := r.PostFormValue("consolePort")
+	userID := r.PostFormValue("userId")
+	fmt.Println(title, description, consolePort, userID)
+	publishedPorts := r.Form["publishedPorts"]
+	if !notEmptyAll(title, description, consolePort, userID) {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	consolePortUint, err := strconv.ParseUint(consolePort, 10, 64)
+	if err != nil {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	userIDUint, err := strconv.ParseUint(userID, 10, 64)
+	if err != nil {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	lesson := lesson{
+		Title:       title,
+		Description: description,
+		Book:        "",
+		ConsolePort: uint(consolePortUint),
+		UserID:      uint(userIDUint),
+	}
+	tx := db.Begin()
+	tx.Save(&lesson)
+	if tx.Error != nil {
+		respond(w, http.StatusInternalServerError)
+		return
+	}
+	for _, publishedPort := range publishedPorts {
+		publishedPortUint, err := strconv.ParseUint(publishedPort, 10, 64)
+		if err != nil {
+			respond(w, http.StatusInternalServerError)
+			return
+		}
+		lessonPort := lessonPort{
+			Port:     uint(publishedPortUint),
+			LessonID: lesson.ID,
+		}
+		tx.Save(&lessonPort)
+		if tx.Error != nil {
+			tx.Rollback()
+			respond(w, http.StatusInternalServerError)
+			return
+		}
+	}
+	tx.Commit()
+	respondJSON(w, http.StatusOK, lesson)
+}
+
 type logoutHandler struct {
 }
 
@@ -80,7 +149,6 @@ func (l *logoutHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (l *logoutHandler) logout(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("logout")
 	http.SetCookie(w, newCookie(cookieNameSessionID, "", -1))
 }
 
