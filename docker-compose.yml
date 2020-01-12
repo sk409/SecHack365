@@ -16,3 +16,4 @@ services:
       - 3300:3300
     volumes:
       - ./server/sechack365:/go/src/github.com/sk409/sechack365
+      - /var/run/docker.sock:/var/run/docker.sock

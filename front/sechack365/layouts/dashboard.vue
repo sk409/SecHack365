@@ -5,7 +5,7 @@
       <div class="h-100">
         <v-container fluid class="h-100">
           <v-row class="h-100">
-            <v-col md="3" class="d-sm-none d-md-block separator">
+            <v-col md="3" class="d-none d-md-block separator">
               <v-list>
                 <v-list-item-group>
                   <v-list-item
@@ -39,6 +39,7 @@
 <script>
 import Navbar from "@/components/Navbar.vue";
 export default {
+  middleware: "auth",
   components: {
     Navbar
   },
@@ -57,7 +58,7 @@ export default {
         },
         {
           title: "作成したレッスン",
-          icon: "mdi-pencil",
+          icon: "mdi-monitor-clean",
           route: this.$routes.dashboard.lessons
         }
       ]

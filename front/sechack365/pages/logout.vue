@@ -8,6 +8,7 @@ import Mutations from "@/assets/js/mutations.js";
 import { Url, urlLogout } from "@/assets/js/url.js";
 import { mapMutations } from "vuex";
 export default {
+  middleware: "auth",
   created() {
     const url = new Url(urlLogout);
     ajax.post(url.base, {}, { withCredentials: true }).then(response => {

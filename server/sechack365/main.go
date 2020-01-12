@@ -2,9 +2,14 @@ package main
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/sk409/goconst"
 )
+
+func init() {
+	os.Mkdir(pathLessons, 0755)
+}
 
 func main() {
 	headerContentType := []string{goconst.HTTP_HEADER_CONTENT_TYPE}

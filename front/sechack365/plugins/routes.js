@@ -10,7 +10,10 @@ Vue.prototype.$routes = {
   },
   lessons: {
     base: "/lessons",
-    create: "/lessons/create"
+    create: "/lessons/create",
+    edit(id) {
+      return "/lessons/" + id + "/edit";
+    }
   },
   login: {
     base: "/login"

@@ -2,8 +2,14 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
+
+	"github.com/google/uuid"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -73,6 +79,8 @@ type lessonsHandler struct {
 
 func (l *lessonsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
+	case http.MethodGet:
+		l.fetch(w, r)
 	case http.MethodPost:
 		l.store(w, r)
 	default:
@@ -80,15 +88,24 @@ func (l *lessonsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (l *lessonsHandler) fetch(w http.ResponseWriter, r *http.Request) {
+	lessons := []lesson{}
+	err := fetch(w, r, &lessons)
+	if err != nil {
+		respond(w, http.StatusInternalServerError)
+		return
+	}
+	respondJSON(w, http.StatusOK, lessons)
+}
+
 func (l *lessonsHandler) store(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
-	title := r.PostFormValue("title")
-	description := r.PostFormValue("description")
-	consolePort := r.PostFormValue("consolePort")
-	userID := r.PostFormValue("userId")
-	fmt.Println(title, description, consolePort, userID)
-	publishedPorts := r.Form["publishedPorts"]
-	if !notEmptyAll(title, description, consolePort, userID) {
+	r.ParseMultipartForm(1 << 62)
+	title := r.MultipartForm.Value["title"][0]
+	description := r.MultipartForm.Value["description"][0]
+	image := r.MultipartForm.Value["os"][0]
+	consolePort := r.MultipartForm.Value["consolePort"][0]
+	userID := r.MultipartForm.Value["userID"][0]
+	if !notEmptyAll(title, description, image, consolePort, userID) {
 		respond(w, http.StatusBadRequest)
 		return
 	}
@@ -115,14 +132,15 @@ func (l *lessonsHandler) store(w http.ResponseWriter, r *http.Request) {
 		respond(w, http.StatusInternalServerError)
 		return
 	}
-	for _, publishedPort := range publishedPorts {
-		publishedPortUint, err := strconv.ParseUint(publishedPort, 10, 64)
+	ports := r.MultipartForm.Value["ports[]"]
+	for _, port := range ports {
+		portUint, err := strconv.ParseUint(port, 10, 64)
 		if err != nil {
 			respond(w, http.StatusInternalServerError)
 			return
 		}
 		lessonPort := lessonPort{
-			Port:     uint(publishedPortUint),
+			Port:     uint(portUint),
 			LessonID: lesson.ID,
 		}
 		tx.Save(&lessonPort)
@@ -133,6 +151,65 @@ func (l *lessonsHandler) store(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	tx.Commit()
+	u := user{}
+	db.Where("id = ?", userID).First(&u)
+	if db.Error != nil {
+		respond(w, http.StatusInternalServerError)
+		return
+	}
+	lessonDirectoryPath := filepath.Join(pathLessons, fmt.Sprintf("%d", u.ID), fmt.Sprintf("%d", lesson.ID))
+	os.MkdirAll(lessonDirectoryPath, 0755)
+	thumbnailHeaders := r.MultipartForm.File["thumbnail"]
+	if len(thumbnailHeaders) == 1 {
+		thumbnailHeader := thumbnailHeaders[0]
+		filenameComponents := strings.Split(thumbnailHeader.Filename, ".")
+		if 2 <= len(filenameComponents) {
+			extension := filenameComponents[len(filenameComponents)-1]
+			thumbnailFilePath := filepath.Join(lessonDirectoryPath, "thumbnail."+extension)
+			thumbnailFile, err := os.Create(filepath.Join(thumbnailFilePath))
+			if err != nil {
+				respond(w, http.StatusInternalServerError)
+				return
+			}
+			defer thumbnailFile.Close()
+			thumbnail, err := thumbnailHeader.Open()
+			if err != nil {
+				respond(w, http.StatusInternalServerError)
+				return
+			}
+			io.Copy(thumbnailFile, thumbnail)
+		}
+	}
+	df := newDockerfile(image, u.Name)
+	dockerfilePath := filepath.Join(lessonDirectoryPath, "Dockerfile")
+	err = df.write(dockerfilePath)
+	if err != nil {
+		respond(w, http.StatusInternalServerError)
+		return
+	}
+	imagename, err := uuid.NewUUID()
+	if err != nil {
+		respond(w, http.StatusInternalServerError)
+		return
+	}
+	d := docker{}
+	err = d.buildImage(imagename.String(), filepath.Dir(dockerfilePath))
+	if err != nil {
+		respond(w, http.StatusInternalServerError)
+		return
+	}
+	containername, err := uuid.NewUUID()
+	if err != nil {
+		respond(w, http.StatusInternalServerError)
+		return
+	}
+	containerID, err := d.runContainer(containername.String(), imagename.String(), ports...)
+	if err != nil {
+		respond(w, http.StatusInternalServerError)
+		return
+	}
+	lesson.DockerContainerID = string(containerID)
+	db.Save(&lesson)
 	respondJSON(w, http.StatusOK, lesson)
 }
 
