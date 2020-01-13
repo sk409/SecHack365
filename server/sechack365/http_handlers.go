@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -130,11 +131,22 @@ type lessonsHandler struct {
 }
 
 func (l *lessonsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	log.Print(r.Method)
 	switch r.Method {
 	case http.MethodGet:
 		l.fetch(w, r)
 	case http.MethodPost:
 		l.store(w, r)
+	case http.MethodPut:
+		fmt.Println(r.URL.Path)
+		regex := regexp.MustCompile("/lessons/([0-9]+)")
+		matches := regex.FindAllSubmatch([]byte(r.URL.Path), -1)
+		fmt.Print(string(matches[0][1]))
+		if len(matches) == 1 && len(matches[0]) == 2 {
+			l.update(w, r, string(matches[0][1]))
+		} else {
+			respond(w, http.StatusNotFound)
+		}
 	default:
 		respond(w, http.StatusNotFound)
 	}
@@ -293,6 +305,14 @@ func (l *lessonsHandler) store(w http.ResponseWriter, r *http.Request) {
 	}
 	db.Save(&lesson)
 	respondJSON(w, http.StatusOK, lesson)
+}
+
+func (l *lessonsHandler) update(w http.ResponseWriter, r *http.Request, id string) {
+	update(r, id, lesson{})
+	if db.Error != nil {
+		respond(w, http.StatusInternalServerError)
+		return
+	}
 }
 
 type logoutHandler struct {

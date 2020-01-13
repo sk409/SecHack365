@@ -78,3 +78,12 @@ func respondMessage(w http.ResponseWriter, statusCode int, message string) {
 	respond(w, statusCode)
 	w.Write([]byte(message))
 }
+
+func update(r *http.Request, id string, model interface{}) error {
+	query := make(map[string]interface{})
+	for key, value := range r.URL.Query() {
+		query[key] = value[0]
+	}
+	db.Model(model).Where("id = ?", id).Updates(query)
+	return db.Error
+}

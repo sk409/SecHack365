@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"strings"
 
@@ -24,6 +25,7 @@ func allowHeaders(headers []string, next http.Handler) http.Handler {
 
 func cors(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Println("CORS")
 		w.Header().Set(goconst.HTTP_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, "http://localhost:6900")
 		next.ServeHTTP(w, r)
 	})

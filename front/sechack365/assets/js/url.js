@@ -32,5 +32,8 @@ export const urlUsers = "users";
 export class Url {
   constructor(type) {
     this.base = process.env.serverOrigin + "/" + type;
+    this.update = function(id) {
+      return this.base + "/" + id;
+    };
   }
 }

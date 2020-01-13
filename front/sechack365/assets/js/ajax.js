@@ -1,5 +1,22 @@
 import Axios from "axios";
 
+const makeData = (data) => {
+  const params = new FormData();
+  if (data) {
+    for (const key in data) {
+      const value = data[key];
+      if (key.endsWith("[]")) {
+        value.forEach(entry => {
+          params.append(key, entry);
+        });
+      } else {
+        params.append(key, value);
+      }
+    }
+  }
+  return params;
+}
+
 class Ajax {
   get(url, data, config) {
     url += "?";
@@ -10,20 +27,11 @@ class Ajax {
   }
 
   post(url, data, config) {
-    const params = new FormData();
-    if (data) {
-      for (const key in data) {
-        const value = data[key];
-        if (key.endsWith("[]")) {
-          value.forEach(entry => {
-            params.append(key, entry);
-          });
-        } else {
-          params.append(key, value);
-        }
-      }
-    }
-    return Axios.post(url, params, config);
+    return Axios.post(url, makeData(data), config);
+  }
+
+  put(url, data, config) {
+    return Axios.put(url, makeData(data), config);
   }
 }
 
