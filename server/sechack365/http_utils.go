@@ -3,6 +3,9 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"reflect"
+
+	"github.com/sk409/gotype"
 
 	"github.com/sk409/goconst"
 )
@@ -30,12 +33,38 @@ func login(w http.ResponseWriter, u user) {
 	))
 }
 
+func public(data interface{}) (interface{}, error) {
+	if gotype.IsSlice(data) {
+		rv := reflect.ValueOf(data)
+		s := make([]interface{}, rv.Len())
+		for index := 0; index < rv.Len(); index++ {
+			rvi := rv.Index(index).Interface()
+			if f, ok := rvi.(facade); ok {
+				p, err := f.Public()
+				if err != nil {
+					return nil, err
+				}
+				s[index] = p
+			} else {
+				s[index] = rvi
+			}
+		}
+		data = s
+	}
+	return data, nil
+}
+
 func respond(w http.ResponseWriter, statusCode int) {
 	w.WriteHeader(statusCode)
 }
 
 func respondJSON(w http.ResponseWriter, statusCode int, body interface{}) {
-	jsonBytes, err := json.Marshal(body)
+	data, err := public(body)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	jsonBytes, err := json.Marshal(data)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

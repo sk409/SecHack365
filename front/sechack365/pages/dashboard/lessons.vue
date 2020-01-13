@@ -122,7 +122,6 @@ export default {
     deleteLesson(lesson) {
       console.log(lesson);
     },
-    editLesson(lesson) {},
     sortLessonTable(key, desc) {
       this.tableSortKey = key;
       this.tableSortDesc = desc;

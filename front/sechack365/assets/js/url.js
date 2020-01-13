@@ -21,6 +21,7 @@
 
 // export const urlUsers
 
+export const urlFolders = "folders";
 export const urlLessons = "lessons";
 export const urlLogin = "login";
 export const urlLogout = "logout";

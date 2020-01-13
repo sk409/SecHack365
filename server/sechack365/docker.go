@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 )
@@ -21,8 +23,9 @@ func newDockerfile(image string, username string) *dockerfile {
     && yum -y install vim \
     && yum -y install sudo \
     && wget -qO- https://github.com/yudai/gotty/releases/download/v0.0.12/gotty_linux_amd64.tar.gz | tar zx -C /usr/local/bin/ \
-    && yum -y remove wget \
+	&& yum -y remove wget \
 `
+	f.text += fmt.Sprintf("    && echo -e \"preferences{\\nbackground_color = \\\"rgb(255, 255, 255)\\\"\\nforeground_color = \\\"rgb(16, 16, 16)\\\"\\n}\" >> home/%s/.gotty \\\n", username)
 	f.text += fmt.Sprintf("    && echo \"%s ALL=NOPASSWD: ALL\" >> /etc/sudoers\n", username)
 	f.text += fmt.Sprintf("USER %s", username)
 	return &f
@@ -47,6 +50,25 @@ func (d *docker) buildImage(imagename, directoryPath string) error {
 		return err
 	}
 	return command.Wait()
+}
+
+func (d *docker) exec(id string, args []string, command ...string) ([]byte, error) {
+	args = append([]string{"container", "exec"}, args...)
+	args = append(args, id)
+	args = append(args, command...)
+	cmd := exec.Command("docker", args...)
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	output, err := cmd.Output()
+	if err != nil {
+		log.Println(stderr.String())
+	}
+	return output, err
+}
+
+func (d *docker) port(id string) ([]byte, error) {
+	command := exec.Command("docker", "container", "port", id)
+	return command.Output()
 }
 
 func (d *docker) runContainer(containername, imagename string, ports ...string) ([]byte, error) {

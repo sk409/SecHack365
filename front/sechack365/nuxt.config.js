@@ -8,8 +8,7 @@ export default {
   head: {
     titleTemplate: "%s - " + process.env.npm_package_name,
     title: process.env.npm_package_name || "",
-    meta: [
-      {
+    meta: [{
         charset: "utf-8"
       },
       {
@@ -22,11 +21,16 @@ export default {
         content: process.env.npm_package_description || ""
       }
     ],
-    link: [
+    link: [{
+      rel: "icon",
+      type: "image/x-icon",
+      href: "/favicon.ico"
+    }],
+    script: [{
+        src: "https://cdnjs.cloudflare.com/ajax/libs/ace/1.2.0/ace.js"
+      },
       {
-        rel: "icon",
-        type: "image/x-icon",
-        href: "/favicon.ico"
+        src: "https://cdnjs.cloudflare.com/ajax/libs/ace/1.2.0/ext-language_tools.js"
       }
     ]
   },
@@ -39,7 +43,10 @@ export default {
   /*
    ** Global CSS
    */
-  css: [{ src: "@/assets/sass/global.scss", lang: "scss" }],
+  css: [{
+    src: "@/assets/sass/global.scss",
+    lang: "scss"
+  }],
   /*
    ** Plugins to load before mounting the App
    */
@@ -86,6 +93,8 @@ export default {
     host: "0.0.0.0"
   },
   env: {
+    serverHost: "http://localhost",
+    serverPort: "3300",
     serverOrigin: "http://localhost:3300"
   }
 };

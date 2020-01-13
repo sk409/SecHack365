@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -32,6 +33,57 @@ func (a *authHandler) auth(w http.ResponseWriter, r *http.Request) {
 		"authenticated": err != nil,
 	}
 	respondJSON(w, http.StatusOK, response)
+}
+
+type foldersHandler struct {
+}
+
+func (f *foldersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		f.fetch(w, r)
+	default:
+		respond(w, http.StatusNotFound)
+	}
+}
+
+func (f *foldersHandler) fetch(w http.ResponseWriter, r *http.Request) {
+	lessonID := r.URL.Query().Get("lessonID")
+	path := r.URL.Query().Get("path")
+	if !notEmptyAll(lessonID, path) {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	l := lesson{}
+	db.Where("id = ?", lessonID).First(&l)
+	d := docker{}
+	output, err := d.exec(l.DockerContainerID, []string{}, "ls", "-al", path)
+	if err != nil {
+		respond(w, http.StatusInternalServerError)
+		return
+	}
+	root := folder{Path: path}
+	for _, line := range strings.Split(string(output), "\n") {
+		if len(line) == 0 {
+			continue
+		}
+		components := strings.Split(line, " ")
+		name := components[len(components)-1]
+		if name == "." || name == ".." {
+			continue
+		}
+		switch line[0] {
+		case '-':
+			child := file{Dir: path, Name: name, Path: filepath.Join(path, name)}
+			root.ChildFiles = append(root.ChildFiles, child)
+		case 'd':
+			child := folder{Dir: path, Name: name, Path: filepath.Join(path, name)}
+			root.ChildFolders = append(root.ChildFolders, child)
+		case 'l':
+			continue
+		}
+	}
+	respondJSON(w, http.StatusOK, root)
 }
 
 type loginHandler struct {
@@ -105,6 +157,8 @@ func (l *lessonsHandler) store(w http.ResponseWriter, r *http.Request) {
 	image := r.MultipartForm.Value["os"][0]
 	consolePort := r.MultipartForm.Value["consolePort"][0]
 	userID := r.MultipartForm.Value["userID"][0]
+	ports := r.MultipartForm.Value["ports[]"]
+	ports = append(ports, consolePort)
 	if !notEmptyAll(title, description, image, consolePort, userID) {
 		respond(w, http.StatusBadRequest)
 		return
@@ -126,38 +180,18 @@ func (l *lessonsHandler) store(w http.ResponseWriter, r *http.Request) {
 		ConsolePort: uint(consolePortUint),
 		UserID:      uint(userIDUint),
 	}
-	tx := db.Begin()
-	tx.Save(&lesson)
-	if tx.Error != nil {
+	db.Save(&lesson)
+	if db.Error != nil {
 		respond(w, http.StatusInternalServerError)
 		return
 	}
-	ports := r.MultipartForm.Value["ports[]"]
-	for _, port := range ports {
-		portUint, err := strconv.ParseUint(port, 10, 64)
-		if err != nil {
-			respond(w, http.StatusInternalServerError)
-			return
-		}
-		lessonPort := lessonPort{
-			Port:     uint(portUint),
-			LessonID: lesson.ID,
-		}
-		tx.Save(&lessonPort)
-		if tx.Error != nil {
-			tx.Rollback()
-			respond(w, http.StatusInternalServerError)
-			return
-		}
-	}
-	tx.Commit()
 	u := user{}
 	db.Where("id = ?", userID).First(&u)
 	if db.Error != nil {
 		respond(w, http.StatusInternalServerError)
 		return
 	}
-	lessonDirectoryPath := filepath.Join(pathLessons, fmt.Sprintf("%d", u.ID), fmt.Sprintf("%d", lesson.ID))
+	lessonDirectoryPath := filepath.Join(pathLessons, fmt.Sprintf("%d", lesson.ID))
 	os.MkdirAll(lessonDirectoryPath, 0755)
 	thumbnailHeaders := r.MultipartForm.File["thumbnail"]
 	if len(thumbnailHeaders) == 1 {
@@ -165,19 +199,23 @@ func (l *lessonsHandler) store(w http.ResponseWriter, r *http.Request) {
 		filenameComponents := strings.Split(thumbnailHeader.Filename, ".")
 		if 2 <= len(filenameComponents) {
 			extension := filenameComponents[len(filenameComponents)-1]
-			thumbnailFilePath := filepath.Join(lessonDirectoryPath, "thumbnail."+extension)
-			thumbnailFile, err := os.Create(filepath.Join(thumbnailFilePath))
+			thumbnailPath := filepath.Join(pathLessonThumbnails, fmt.Sprintf("%d", lesson.ID), "thumbnail."+extension)
+			os.MkdirAll(filepath.Dir(thumbnailPath), 0755)
+			thumbnailFile, err := os.Create(filepath.Join(thumbnailPath))
 			if err != nil {
+				log.Println(err)
 				respond(w, http.StatusInternalServerError)
 				return
 			}
 			defer thumbnailFile.Close()
 			thumbnail, err := thumbnailHeader.Open()
 			if err != nil {
+				log.Println(err)
 				respond(w, http.StatusInternalServerError)
 				return
 			}
 			io.Copy(thumbnailFile, thumbnail)
+			lesson.ThumbnailPath = strings.TrimPrefix(thumbnailPath, cwd)
 		}
 	}
 	df := newDockerfile(image, u.Name)
@@ -209,6 +247,50 @@ func (l *lessonsHandler) store(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	lesson.DockerContainerID = string(containerID)
+	_, err = d.exec(containername.String(), []string{"-d"}, "gotty", "-w", "-p", consolePort, "bash")
+	if err != nil {
+		respond(w, http.StatusInternalServerError)
+		return
+	}
+	portsOutput, err := d.port(containername.String())
+	if err != nil {
+		respond(w, http.StatusInternalServerError)
+		return
+	}
+	hostPorts := make(map[string]uint)
+	for _, line := range strings.Split(string(portsOutput), "\n") {
+		if line == "" {
+			continue
+		}
+		components := strings.Split(line, " ")
+		port := strings.Split(components[0], "/")[0]
+		hostPort, err := strconv.ParseUint(strings.Split(components[2], ":")[1], 10, 64)
+		hostPorts[port] = uint(hostPort)
+		if err != nil {
+			respond(w, http.StatusInternalServerError)
+			return
+		}
+		if port == consolePort {
+			lesson.HostConsolePort = uint(hostPort)
+		}
+	}
+	for _, port := range ports {
+		portUint, err := strconv.ParseUint(port, 10, 64)
+		if err != nil {
+			respond(w, http.StatusInternalServerError)
+			return
+		}
+		lessonPort := lessonPort{
+			Port:     uint(portUint),
+			HostPort: hostPorts[port],
+			LessonID: lesson.ID,
+		}
+		db.Save(&lessonPort)
+		if db.Error != nil {
+			respond(w, http.StatusInternalServerError)
+			return
+		}
+	}
 	db.Save(&lesson)
 	respondJSON(w, http.StatusOK, lesson)
 }

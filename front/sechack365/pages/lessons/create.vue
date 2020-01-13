@@ -85,17 +85,6 @@ export default {
   },
   methods: {
     submit() {
-      // const url = new Url(urlLessons);
-      // const data = new FormData();
-      // data.append("title", "abc");
-      // const config = {
-      //   headers: {
-      //     "content-type": "multipart/form-data"
-      //   }
-      // };
-      // axios.post(url.base, data, config).then(response => {
-      //   console.log(response);
-      // });
       if (this.$refs.form.validate()) {
         const url = new Url(urlLessons);
         const data = {
@@ -112,21 +101,9 @@ export default {
             "content-type": "multipart/form-data"
           }
         };
-        // const form = new FormData();
-        // form.append("title", data.title);
-        // form.append("description", data.description);
-        // form.append("os", data.os);
-        // form.append("consolePort", data.consolePort);
-        // form.append("ports[]", 80);
-        // form.append("ports[]", 3306);
-        // form.append("thumbnail", this.thumbnail);
-        // form.append("userID", 1);
-        // form.append("title", data.title);
-        // axios.post(url.base, form, config).then(response => {
-        //   console.log(response);
-        // });
         // this.loading = true;
         ajax.post(url.base, data, config).then(response => {
+          console.log(response);
           this.loading = false;
           this.$router.push(this.$routes.dashboard.lessons);
         });

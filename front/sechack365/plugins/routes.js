@@ -13,6 +13,12 @@ Vue.prototype.$routes = {
     create: "/lessons/create",
     edit(id) {
       return "/lessons/" + id + "/edit";
+    },
+    ide(id) {
+      return "/lessons/" + id + "/ide";
+    },
+    write(id) {
+      return "/lessons/" + id + "/write";
     }
   },
   login: {

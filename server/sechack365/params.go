@@ -14,9 +14,13 @@ const (
 )
 
 var (
-	cwd            string
-	pathLessons    string
-	sessionManager = gosession.Manager{Provider: gosession.NewMemoryProvider()}
+	cwd                  string
+	pathLessons          string
+	pathLessonThumbnails string
+	pathPublic           string
+	pathPublicImages     string
+	pathThumbnails       string
+	sessionManager       = gosession.Manager{Provider: gosession.NewMemoryProvider()}
 )
 
 func init() {
@@ -26,4 +30,10 @@ func init() {
 		panic(err)
 	}
 	pathLessons = filepath.Join(cwd, "lessons")
+	pathPublic = filepath.Join(cwd, "public")
+	pathPublicImages = filepath.Join(pathPublic, "images")
+	pathThumbnails = filepath.Join(pathPublicImages, "thumbnails")
+	pathLessonThumbnails = filepath.Join(pathThumbnails, "lesson")
+	os.Mkdir(pathLessons, 0755)
+	os.MkdirAll(pathLessonThumbnails, 0755)
 }
