@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/sk409/goconst"
+
 	"github.com/google/uuid"
 
 	"golang.org/x/crypto/bcrypt"
@@ -131,7 +133,10 @@ type lessonsHandler struct {
 }
 
 func (l *lessonsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Print(r.Method)
+	if r.Method == http.MethodOptions {
+		w.Header().Set(goconst.HTTP_HEADER_ACCESS_CONTROL_ALLOW_METHODS, "GET, POST, PUT")
+		return
+	}
 	switch r.Method {
 	case http.MethodGet:
 		l.fetch(w, r)

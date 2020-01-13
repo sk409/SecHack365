@@ -90,3 +90,5 @@ sw.*
 *.swp
 
 node_modules
+server/sechack365/lessons
+server/sechack365/public

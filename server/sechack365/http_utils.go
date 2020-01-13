@@ -2,8 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
 	"reflect"
+	"strings"
 
 	"github.com/sk409/gotype"
 
@@ -80,9 +82,15 @@ func respondMessage(w http.ResponseWriter, statusCode int, message string) {
 }
 
 func update(r *http.Request, id string, model interface{}) error {
+	data, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return err
+	}
+	params := strings.Split(string(data), "&")
 	query := make(map[string]interface{})
-	for key, value := range r.URL.Query() {
-		query[key] = value[0]
+	for _, param := range params {
+		keyvalue := strings.Split(param, "=")
+		query[keyvalue[0]] = keyvalue[1]
 	}
 	db.Model(model).Where("id = ?", id).Updates(query)
 	return db.Error

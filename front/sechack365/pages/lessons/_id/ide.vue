@@ -3,10 +3,7 @@
     <v-container fluid class="h-100 pa-0">
       <v-row class="h-100">
         <v-col cols="2" class="h-100 pa-0">
-          <v-treeview
-            :items="filetree"
-            :load-children="fetchChildren"
-          ></v-treeview>
+          <v-treeview :items="filetree" :load-children="fetchChildren"></v-treeview>
         </v-col>
         <v-col cols="10" class="h-100 pa-0">
           <div id="editor" class="h-100"></div>
@@ -55,7 +52,6 @@ export default {
   },
   computed: {
     consoleURL() {
-      console.log(process.env.serverHost);
       return this.lesson
         ? process.env.serverHost + ":" + this.lesson.HostConsolePort
         : "";

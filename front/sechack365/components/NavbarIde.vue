@@ -8,19 +8,12 @@
     </v-app-bar>
     <v-navigation-drawer v-model="drawer" app class="grey lighten-4">
       <div class="pa-2">
-        <v-img
-          :src="thumbnailURL"
-          width="60%"
-          contain
-          class="d-block mx-auto"
-        ></v-img>
+        <v-img :src="thumbnailURL" width="60%" contain class="d-block mx-auto"></v-img>
       </div>
-      <div class="text-center title">
-        {{ lesson ? lesson.Title : "" }}
-      </div>
+      <div class="text-center title">{{ lesson ? lesson.Title : "" }}</div>
       <v-divider class="my-2"></v-divider>
       <v-list>
-        <v-list-item :to="$routes.lessons.write(lesson ? lesson.ID : '')">
+        <v-list-item :to="$routes.lessons.write(lesson ? lesson.ID : '')" target="_blank">
           <v-list-item-icon>
             <v-icon>mdi-pencil-box-multiple-outline</v-icon>
           </v-list-item-icon>

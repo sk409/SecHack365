@@ -1,7 +1,10 @@
 import Axios from "axios";
 
-const makeData = (data) => {
-  const params = new FormData();
+const makeData = (data, config) => {
+  let params = new URLSearchParams();
+  if (config && config.headers && config.headers === "multipart/form-data") {
+    params = new FormData();
+  }
   if (data) {
     for (const key in data) {
       const value = data[key];
@@ -27,11 +30,11 @@ class Ajax {
   }
 
   post(url, data, config) {
-    return Axios.post(url, makeData(data), config);
+    return Axios.post(url, makeData(data, config), config);
   }
 
   put(url, data, config) {
-    return Axios.put(url, makeData(data), config);
+    return Axios.put(url, makeData(data, config), config);
   }
 }
 

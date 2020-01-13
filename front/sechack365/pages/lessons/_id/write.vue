@@ -44,7 +44,6 @@ export default {
       const data = {
         book: this.lesson.Book
       };
-      console.log(url.update(this.lesson.ID));
       ajax.put(url.update(this.lesson.ID), data);
     }
   }
