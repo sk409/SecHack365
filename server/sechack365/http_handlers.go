@@ -11,8 +11,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/sk409/goconst"
-
 	"github.com/google/uuid"
 
 	"golang.org/x/crypto/bcrypt"
@@ -36,6 +34,83 @@ func (a *authHandler) auth(w http.ResponseWriter, r *http.Request) {
 		"authenticated": err != nil,
 	}
 	respondJSON(w, http.StatusOK, response)
+}
+
+type filesHandler struct {
+}
+
+func (f *filesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		f.fetch(w, r)
+	case http.MethodPut:
+		f.update(w, r)
+	default:
+		respond(w, http.StatusNotFound)
+	}
+}
+
+func (f *filesHandler) fetch(w http.ResponseWriter, r *http.Request) {
+	lessonID := r.URL.Query().Get("lessonID")
+	path := r.URL.Query().Get("path")
+	if !notEmptyAll(lessonID, path) {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	l := lesson{}
+	db.Where("id = ?", lessonID).First(&l)
+	if db.Error != nil {
+		respond(w, http.StatusInternalServerError)
+		return
+	}
+	d := docker{}
+	text, err := d.exec(l.DockerContainerID, []string{}, "cat", path)
+	if err != nil {
+		respond(w, http.StatusInternalServerError)
+		return
+	}
+	file := file{
+		Dir:  filepath.Dir(path),
+		Name: filepath.Base(path),
+		Path: path,
+		Text: string(text),
+	}
+	respondJSON(w, http.StatusOK, file)
+}
+
+func (f *filesHandler) update(w http.ResponseWriter, r *http.Request) {
+	lessonID := r.PostFormValue("lessonID")
+	path := r.PostFormValue("path")
+	text := r.PostFormValue("text")
+	fmt.Println(lessonID)
+	fmt.Println(path)
+	fmt.Println(text)
+	if !notEmptyAll(lessonID, path) {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	l := lesson{}
+	db.Where("id = ?", lessonID).First(&l)
+	filename, err := uuid.NewUUID()
+	if err != nil {
+		respond(w, http.StatusInternalServerError)
+		return
+	}
+	file, err := os.Create(filename.String())
+	if err != nil {
+		respond(w, http.StatusInternalServerError)
+		return
+	}
+	defer file.Close()
+	_, err = file.Write([]byte(text))
+	if err != nil {
+		respond(w, http.StatusInternalServerError)
+		return
+	}
+	d := docker{}
+	src := filepath.Join(cwd, filename.String())
+	d.sendFile(l.DockerContainerID, src, path)
+	os.Remove(filename.String())
 }
 
 type foldersHandler struct {
@@ -133,20 +208,16 @@ type lessonsHandler struct {
 }
 
 func (l *lessonsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodOptions {
-		w.Header().Set(goconst.HTTP_HEADER_ACCESS_CONTROL_ALLOW_METHODS, "GET, POST, PUT")
-		return
-	}
 	switch r.Method {
 	case http.MethodGet:
 		l.fetch(w, r)
 	case http.MethodPost:
 		l.store(w, r)
 	case http.MethodPut:
-		fmt.Println(r.URL.Path)
+		// fmt.Println(r.URL.Path)
 		regex := regexp.MustCompile("/lessons/([0-9]+)")
 		matches := regex.FindAllSubmatch([]byte(r.URL.Path), -1)
-		fmt.Print(string(matches[0][1]))
+		// fmt.Print(string(matches[0][1]))
 		if len(matches) == 1 && len(matches[0]) == 2 {
 			l.update(w, r, string(matches[0][1]))
 		} else {

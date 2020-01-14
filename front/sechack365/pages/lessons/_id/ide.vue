@@ -1,9 +1,15 @@
 <template>
-  <div class="h-100">
+  <div ref="ide" class="h-100">
     <v-container fluid class="h-100 pa-0">
       <v-row class="h-100">
-        <v-col cols="2" class="h-100 pa-0">
-          <v-treeview :items="filetree" :load-children="fetchChildren"></v-treeview>
+        <v-col cols="2" class="h-100 pa-0 pl-3">
+          <FileTree
+            :items="filetree"
+            :load-children="fetchChildren"
+            :style="filetreeStyle"
+            class="file-tree"
+            @click-item="clickFileTreeItem"
+          ></FileTree>
         </v-col>
         <v-col cols="10" class="h-100 pa-0">
           <div id="editor" class="h-100"></div>
@@ -15,8 +21,45 @@
 </template>
 
 <script>
+import _ from "lodash";
 import ajax from "@/assets/js/ajax.js";
-import { Url, urlFolders, urlLessons } from "@/assets/js/url.js";
+import FileTree from "@/components/FileTree.vue";
+import { Url, urlFiles, urlFolders, urlLessons } from "@/assets/js/url.js";
+
+const extension = str => {
+  const components = str.split(".");
+  const extension =
+    components.length == 0 ? "" : components[components.length - 1];
+  return extension;
+};
+
+const aceMode = path => {
+  const ext = extension(path);
+  const modes = {
+    js: "javascript",
+    php: "php"
+  };
+  const base = "ace/mode/";
+  if (!modes[ext]) {
+    return base + "text";
+  }
+  return base + modes[ext];
+};
+
+const fileIcon = name => {
+  const ext = extension(name);
+  if (
+    ext == "bash_history" ||
+    ext == "bash_logout" ||
+    ext == "bash_profile" ||
+    ext == "bashrc"
+  ) {
+    return "mdi-bash";
+  } else if (ext == "php") {
+    return "mdi-language-php";
+  }
+  return "mdi-note-text-outline";
+};
 
 const makeChildrenFromResponse = response => {
   const children = [];
@@ -34,20 +77,31 @@ const makeChildrenFromResponse = response => {
       };
       if (child.hasOwnProperty("Text")) {
         c.file = true;
+        c.icon = fileIcon(child.Name);
       } else {
         c.file = false;
+        c.open = false;
+        c.icon = "mdi-folder";
         c.children = [];
       }
       return c;
     }
   );
 };
+
+let editor = null;
 export default {
   layout: "lesson",
+  components: {
+    FileTree
+  },
   data() {
     return {
+      delayedUpdate: _.debounce(this.updateFileText, 1000),
+      file: null,
       filetree: [],
-      lesson: null
+      lesson: null,
+      ideHeight: 0
     };
   },
   computed: {
@@ -55,6 +109,11 @@ export default {
       return this.lesson
         ? process.env.serverHost + ":" + this.lesson.HostConsolePort
         : "";
+    },
+    filetreeStyle() {
+      return {
+        height: this.ideHeight + "px"
+      };
     }
   },
   created() {
@@ -76,21 +135,35 @@ export default {
     });
   },
   mounted() {
-    ace.edit("editor");
-    const editor = ace.edit("editor");
-    editor.$blockScrolling = Infinity;
-    editor.setOptions({
-      enableBasicAutocompletion: true,
-      enableSnippets: false,
-      enableLiveAutocompletion: true
-    });
-    editor.setTheme("ace/theme/xcode");
-    editor.getSession().setMode("ace/mode/javascript");
-    editor.setFontSize(20);
-    editor.setValue("console.log()");
+    this.ideHeight = this.$refs.ide.clientHeight;
+    this.setupAce();
   },
   methods: {
+    clickFileTreeItem(item) {
+      if (item.file) {
+        const url = new Url(urlFiles);
+        const data = {
+          lessonID: this.lesson.ID,
+          path: item.path
+        };
+        ajax.get(url.base, data).then(response => {
+          item.text = response.data.Text;
+          this.file = item;
+          editor.setValue(item.text);
+          editor.getSession().setMode(aceMode(item.path));
+        });
+      } else {
+        item.open = !item.open;
+        item.icon = item.open ? "mdi-folder-open" : "mdi-folder";
+        if (!item.open) {
+          item.children = [];
+        }
+      }
+    },
     fetchChildren(item) {
+      if (item.file) {
+        return;
+      }
       const url = new Url(urlFolders);
       const data = {
         lessonID: this.$route.params.id,
@@ -99,6 +172,33 @@ export default {
       ajax.get(url.base, data).then(response => {
         item.children = makeChildrenFromResponse(response);
       });
+    },
+    setupAce() {
+      ace.edit("editor");
+      editor = ace.edit("editor");
+      editor.$blockScrolling = Infinity;
+      editor.setOptions({
+        enableBasicAutocompletion: true,
+        enableSnippets: false,
+        enableLiveAutocompletion: true
+      });
+      editor.setTheme("ace/theme/xcode");
+      editor.setFontSize(20);
+      editor.session.on("change", delta => {
+        if (delta.action === "insert" && this.file.text !== editor.getValue()) {
+          this.file.text = editor.getValue();
+          this.delayedUpdate();
+        }
+      });
+    },
+    updateFileText() {
+      const url = new Url(urlFiles);
+      const data = {
+        lessonID: this.lesson.ID,
+        path: this.file.path,
+        text: this.file.text
+      };
+      ajax.put(url.base, data);
     }
   }
 };
@@ -111,6 +211,9 @@ export default {
 .console {
   width: 100%;
   height: 40%;
-  /* background: black; */
+}
+.file-tree {
+  overflow: scroll;
+  white-space: nowrap;
 }
 </style>

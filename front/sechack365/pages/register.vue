@@ -13,9 +13,7 @@
       </v-row>
       <v-row justify="center">
         <v-col sm="4">
-          <v-btn color="primary" :to="$routes.login.base" block class="mx-auto"
-            >アカウントをお持ちでない方</v-btn
-          >
+          <v-btn color="primary" :to="$routes.login.base" block class="mx-auto">アカウントをお持ちの方</v-btn>
         </v-col>
       </v-row>
     </v-container>

@@ -9,9 +9,10 @@ import (
 func main() {
 	headerContentType := []string{goconst.HTTP_HEADER_CONTENT_TYPE}
 	http.Handle("/auth", cors(&authHandler{}))
+	http.Handle("/files", cors(allowMethods([]string{http.MethodGet, http.MethodPost, http.MethodPut}, preflight(&filesHandler{}))))
 	http.Handle("/folders", cors(&foldersHandler{}))
-	http.Handle("/lessons", cors(&lessonsHandler{}))
-	http.Handle("/lessons/", cors(&lessonsHandler{}))
+	http.Handle("/lessons/", cors(allowMethods([]string{http.MethodGet, http.MethodPost, http.MethodPut}, preflight(&lessonsHandler{}))))
+	// http.Handle("/lessons/", cors(preflight(&lessonsHandler{})))
 	http.Handle("/login", cors(allowCredentials(allowHeaders(headerContentType, preflight(&loginHandler{})))))
 	http.Handle("/logout", cors(allowCredentials(&logoutHandler{})))
 	http.Handle("/register", cors(allowCredentials(allowHeaders(headerContentType, preflight(&registerHandler{})))))

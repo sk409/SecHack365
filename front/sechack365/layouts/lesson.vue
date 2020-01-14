@@ -10,6 +10,13 @@
       <div v-else-if="isPermissionError">PERMISSION ERROR</div>
     </v-content>
   </v-app>
+  <!-- <div class="h-100">
+    <div v-if="isLoading">LOADING</div>
+    <div v-else-if="isEditing" class="h-100">
+      <nuxt></nuxt>
+    </div>
+    <div v-else-if="isPermissionError">PERMISSION ERROR</div>
+  </div>-->
 </template>
 
 <script>

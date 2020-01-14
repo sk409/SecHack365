@@ -2,7 +2,7 @@ import Axios from "axios";
 
 const makeData = (data, config) => {
   let params = new URLSearchParams();
-  if (config && config.headers && config.headers === "multipart/form-data") {
+  if (config && config.headers && config.headers["content-type"] === "multipart/form-data") {
     params = new FormData();
   }
   if (data) {

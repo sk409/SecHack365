@@ -52,6 +52,15 @@ func (d *docker) buildImage(imagename, directoryPath string) error {
 	return command.Wait()
 }
 
+func (d *docker) sendFile(id, src, dst string) error {
+	command := exec.Command("docker", "cp", src, id+":"+dst)
+	err := command.Start()
+	if err != nil {
+		return err
+	}
+	return command.Wait()
+}
+
 func (d *docker) exec(id string, args []string, command ...string) ([]byte, error) {
 	args = append([]string{"container", "exec"}, args...)
 	args = append(args, id)
