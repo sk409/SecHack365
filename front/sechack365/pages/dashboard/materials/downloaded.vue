@@ -92,7 +92,6 @@ export default {
             downloaded: 1
           };
           ajax.get(url.base, data).then(response => {
-            // console.log(response);
             if (response.status !== 200) {
               return;
             }

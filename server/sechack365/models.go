@@ -113,7 +113,7 @@ func (m material) public() (interface{}, error) {
 	lessons := []lesson{}
 	for _, lessonMaterial := range lessonMaterials {
 		l := lesson{}
-		db.Where("id = ?", lessonMaterial.ID).First(&l)
+		db.Where("id = ?", lessonMaterial.LessonID).First(&l)
 		lessons = append(lessons, l)
 	}
 	result["lessons"] = lessons
