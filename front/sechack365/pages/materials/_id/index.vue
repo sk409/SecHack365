@@ -10,20 +10,31 @@
       </v-col>
     </v-row>
     <v-divider></v-divider>
+    <div class="subtitle-1 my-2">この教材に含まれているレッスン一覧</div>
     <div v-if="material" class="lesson-card-container">
       <v-card v-for="lesson in material.lessons" :key="lesson.ID" class="ma-2">
         <v-img v-if="lesson" :src="$serverUrl(lesson.ThumbnailPath)"></v-img>
+        <v-divider></v-divider>
         <v-card-title>{{lesson.Title | truncate(12)}}</v-card-title>
         <v-card-text>{{lesson.Description | truncate(30)}}</v-card-text>
       </v-card>
     </div>
-    <v-snackbar :timeout="2000" top>
+    <v-snackbar v-model="snackbar" :timeout="2000" top>
       <span>{{notification}}</span>
       <v-btn color="accent" icon @click="snackbar = false">
         <v-icon>mdi-close</v-icon>
       </v-btn>
     </v-snackbar>
-    <v-btn v-if="downloaded === false" color="accent" fab fixed right bottom @click="download">
+    <v-btn
+      v-if="downloaded === false"
+      color="accent"
+      :loading="loading"
+      fab
+      fixed
+      right
+      bottom
+      @click="download"
+    >
       <v-icon>mdi-download</v-icon>
     </v-btn>
     <v-btn v-else-if="downloaded === true" color="primary" fixed right bottom disabled>ダウンロード済み</v-btn>
@@ -37,6 +48,7 @@ export default {
   data() {
     return {
       downloaded: null,
+      loading: false,
       material: null,
       notification: "",
       snackbar: false
@@ -75,7 +87,9 @@ export default {
         userID: this.$user.ID,
         materialID: this.material.ID
       };
+      this.loading = true;
       ajax.post(url.base, data).then(response => {
+        this.loading = false;
         if (response.status === 200) {
           this.downloaded = true;
           this.notification = "教材を取得しました";

@@ -52,6 +52,23 @@ func (d *docker) buildImage(imagename, directoryPath string) error {
 	return command.Wait()
 }
 
+func (d *docker) commit(id, imagename string) error {
+	command := exec.Command("docker", "container", "commit", id, imagename)
+	err := command.Start()
+	if err != nil {
+		return err
+	}
+	return command.Wait()
+	// var e bytes.Buffer
+	// command.Stderr = &e
+	// _, err := command.Output()
+	// if err != nil {
+	// 	log.Println(e.String())
+	// 	return err
+	// }
+	// return nil
+}
+
 func (d *docker) sendFile(id, src, dst string) error {
 	command := exec.Command("docker", "cp", src, id+":"+dst)
 	err := command.Start()

@@ -58,6 +58,7 @@ type lesson struct {
 	ThumbnailPath     string     `gorm:"type:varchar(256);not null"`
 	ConsolePort       uint       `gorm:"not null"`
 	HostConsolePort   uint
+	Downloaded        bool `gorm:"not null"`
 	UserID            uint `gorm:"not null"`
 }
 
@@ -70,21 +71,6 @@ func (l lesson) public() (interface{}, error) {
 	}
 	p["Ports"] = ports
 	return p, nil
-}
-
-type lessonClone struct {
-	ID                uint `gorm:"primary_key"`
-	CreatedAt         time.Time
-	UpdatedAt         time.Time
-	DeletedAt         *time.Time `sql:"index"`
-	Title             string     `gorm:"type:varchar(256);not null"`
-	Description       string     `gorm:"type:text;not null"`
-	Book              string     `gorm:"type:text;not null"`
-	DockerContainerID string     `gorm:"type:char(64);"`
-	ThumbnailPath     string     `gorm:"type:varchar(256);not null"`
-	ConsolePort       uint       `gorm:"not null"`
-	HostConsolePort   uint
-	UserID            uint `gorm:"not null"`
 }
 
 type lessonMaterial struct {
@@ -112,7 +98,9 @@ type material struct {
 	Title         string     `gorm:"type:varchar(128);not null;"`
 	Description   string     `gorm:"type:varchar(1024);not null;"`
 	ThumbnailPath string     `gorm:"type:varchar(256);not null"`
+	Downloaded    bool       `gorm:"not null"`
 	UserID        uint       `gorm:"not null"`
+	AuthorUserID  *uint
 }
 
 func (m material) public() (interface{}, error) {
@@ -130,15 +118,4 @@ func (m material) public() (interface{}, error) {
 	}
 	result["lessons"] = lessons
 	return result, nil
-}
-
-type materialClone struct {
-	ID            uint `gorm:"primary_key"`
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
-	DeletedAt     *time.Time `sql:"index"`
-	Title         string     `gorm:"type:varchar(128);not null;"`
-	Description   string     `gorm:"type:varchar(1024);not null;"`
-	ThumbnailPath string     `gorm:"type:varchar(256);not null"`
-	UserID        uint       `gorm:"not null"`
 }

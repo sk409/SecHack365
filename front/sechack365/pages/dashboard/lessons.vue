@@ -73,7 +73,8 @@ export default {
     this.$fetchUser(() => {
       const url = new Url(urlLessons);
       const data = {
-        user_id: this.$user.ID
+        user_id: this.$user.ID,
+        downloaded: 0
       };
       ajax.get(url.base, data).then(response => {
         this.lessonLoading = false;

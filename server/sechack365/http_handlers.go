@@ -98,26 +98,20 @@ func (d *downloadsHandler) store(w http.ResponseWriter, r *http.Request) {
 		respond(w, http.StatusInternalServerError)
 		return
 	}
-	// ID            uint `gorm:"primary_key"`
-	// CreatedAt     time.Time
-	// UpdatedAt     time.Time
-	// DeletedAt     *time.Time `sql:"index"`
-	// Title         string     `gorm:"type:varchar(128);not null;"`
-	// Description   string     `gorm:"type:varchar(1024);not null;"`
-	// ThumbnailPath string     `gorm:"type:varchar(256);not null"`
-	// UserID        uint       `gorm:"not null"`
-	mc := materialClone{
+	mc := material{
 		Title:         m.Title,
 		Description:   m.Description,
 		ThumbnailPath: strings.TrimPrefix(pathNoimage, cwd),
-		UserID:        m.UserID,
+		Downloaded:    true,
+		UserID:        uint(userIDUint),
+		AuthorUserID:  &m.UserID,
 	}
 	db.Save(&mc)
 	if db.Error != nil {
 		respond(w, http.StatusInternalServerError)
 		return
 	}
-	materialCloneThumbnailPath := filepath.Join(pathPublicImagesMaterialsClones, fmt.Sprintf("%d", mc.ID), filepath.Base(m.ThumbnailPath))
+	materialCloneThumbnailPath := filepath.Join(pathPublicImagesMaterials, fmt.Sprintf("%d", mc.ID), filepath.Base(m.ThumbnailPath))
 	err = os.MkdirAll(filepath.Dir(materialCloneThumbnailPath), 0755)
 	if err != nil {
 		respond(w, http.StatusInternalServerError)
@@ -130,20 +124,6 @@ func (d *downloadsHandler) store(w http.ResponseWriter, r *http.Request) {
 	}
 	mc.ThumbnailPath = strings.TrimPrefix(materialCloneThumbnailPath, cwd)
 	db.Save(&mc)
-
-	// ID                uint `gorm:"primary_key"`
-	// CreatedAt         time.Time
-	// UpdatedAt         time.Time
-	// DeletedAt         *time.Time `sql:"index"`
-	// Title             string     `gorm:"type:varchar(256);not null"`
-	// Description       string     `gorm:"type:text;not null"`
-	// Book              string     `gorm:"type:text;not null"`
-	// DockerContainerID string     `gorm:"type:char(64);"`
-	// ThumbnailPath     string     `gorm:"type:varchar(256);not null"`
-	// ConsolePort       uint       `gorm:"not null"`
-	// HostConsolePort   uint
-	// UserID            uint `gorm:"not null"`
-
 	lessonMaterials := []lessonMaterial{}
 	db.Where("material_id = ?", m.ID).Find(&lessonMaterials)
 	lessonIDs := make([]uint, len(lessonMaterials))
@@ -153,20 +133,31 @@ func (d *downloadsHandler) store(w http.ResponseWriter, r *http.Request) {
 	lessons := []lesson{}
 	db.Where(lessonIDs).Find(&lessons)
 	for _, l := range lessons {
-		lc := lessonClone{
+		lessonPorts := []lessonPort{}
+		db.Where("lesson_id = ?", l.ID).Find(&lessonPorts)
+		if db.Error != nil {
+			respond(w, http.StatusNotFound)
+			return
+		}
+		ports := make([]string, len(lessonPorts))
+		for index, lessonPort := range lessonPorts {
+			ports[index] = fmt.Sprintf("%d", lessonPort.Port)
+		}
+		lc := lesson{
 			Title:         l.Title,
 			Description:   l.Description,
 			Book:          l.Book,
 			ThumbnailPath: strings.TrimPrefix(pathNoimage, cwd),
 			ConsolePort:   l.ConsolePort,
-			UserID:        l.UserID,
+			Downloaded:    true,
+			UserID:        uint(userIDUint),
 		}
 		db.Save(&lc)
 		if db.Error != nil {
 			respond(w, http.StatusInternalServerError)
 			return
 		}
-		lessonCloneThumbnailPath := filepath.Join(pathPublicImagesMaterialsClones, fmt.Sprintf("%d", lc.ID), filepath.Base(l.ThumbnailPath))
+		lessonCloneThumbnailPath := filepath.Join(pathPublicImagesLessons, fmt.Sprintf("%d", lc.ID), filepath.Base(l.ThumbnailPath))
 		err = os.MkdirAll(filepath.Dir(lessonCloneThumbnailPath), 0755)
 		if err != nil {
 			respond(w, http.StatusInternalServerError)
@@ -177,7 +168,46 @@ func (d *downloadsHandler) store(w http.ResponseWriter, r *http.Request) {
 			respond(w, http.StatusInternalServerError)
 			return
 		}
-		//dc := initContainer()
+		d := docker{}
+		imagename, err := uuid.NewUUID()
+		if err != nil {
+			respond(w, http.StatusInternalServerError)
+			return
+		}
+		err = d.commit(fmt.Sprintf("%s", l.DockerContainerID), imagename.String())
+		if err != nil {
+			respond(w, http.StatusInternalServerError)
+			return
+		}
+		consolePortString := fmt.Sprintf("%d", l.ConsolePort)
+		dc, err := initDockerContainer(imagename.String(), consolePortString, ports...)
+		if err != nil {
+			respond(w, http.StatusInternalServerError)
+			return
+		}
+		lc.DockerContainerID = dc.id
+		lc.HostConsolePort = dc.hostPorts[consolePortString]
+		db.Save(&lc)
+		for _, port := range ports {
+			lpc := lessonPort{
+				Port:     dc.hostPorts[port],
+				LessonID: lc.ID,
+			}
+			db.Save(&lpc)
+			if db.Error != nil {
+				respond(w, http.StatusInternalServerError)
+				return
+			}
+		}
+		lm := lessonMaterial{
+			LessonID:   lc.ID,
+			MaterialID: mc.ID,
+		}
+		db.Save(&lm)
+		if db.Error != nil {
+			respond(w, http.StatusInternalServerError)
+			return
+		}
 	}
 	respondJSON(w, http.StatusOK, download)
 }
@@ -522,7 +552,11 @@ func (l *lessonsHandler) store(w http.ResponseWriter, r *http.Request) {
 		}
 		lesson.ThumbnailPath = strings.TrimPrefix(path, cwd)
 	}
-	dc, err := initContainer(image, u.Name, lessonDirectoryPath, consolePort, ports...)
+	imagename, err := buildDockerImage(image, u.Name, lessonDirectoryPath)
+	if err != nil {
+		respond(w, http.StatusInternalServerError)
+	}
+	dc, err := initDockerContainer(imagename, consolePort, ports...)
 	if err != nil {
 		respond(w, http.StatusInternalServerError)
 		return
@@ -757,8 +791,6 @@ func (u *usersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				case base + id + "/follower":
 					u.follow(w, r, id, true)
 					return
-				case base + id + "/materials/downloaded":
-					u.downloadedMaterials(w, r, id)
 				}
 			}
 		}
@@ -802,26 +834,6 @@ func (u *usersHandler) follow(w http.ResponseWriter, r *http.Request, id string,
 		return
 	}
 	respondJSON(w, http.StatusOK, users)
-}
-
-func (u *usersHandler) downloadedMaterials(w http.ResponseWriter, r *http.Request, id string) {
-	downloads := []download{}
-	db.Where("user_id = ?", id).Find(&downloads)
-	if db.Error != nil {
-		respond(w, http.StatusInternalServerError)
-		return
-	}
-	materialIDs := make([]uint, len(downloads))
-	for index, download := range downloads {
-		materialIDs[index] = download.MaterialID
-	}
-	materials := []material{}
-	db.Where(materialIDs).Find(&materials)
-	if db.Error != nil {
-		respond(w, http.StatusInternalServerError)
-		return
-	}
-	respondJSON(w, http.StatusOK, materials)
 }
 
 func (u *usersHandler) search(w http.ResponseWriter, r *http.Request) {

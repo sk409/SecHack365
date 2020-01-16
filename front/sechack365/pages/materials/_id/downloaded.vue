@@ -1,13 +1,47 @@
 <template>
   <div>
     <div v-if="error">{{error}}</div>
-    <div else></div>
+    <div else>
+      <v-container v-if="material">
+        <v-row>
+          <v-col cols="3">
+            <v-img :src="$serverUrl(material.ThumbnailPath)"></v-img>
+          </v-col>
+          <v-col cols="9">
+            <div class="title">{{material.Title}}</div>
+            <div class="subtitle-1">{{material.author}}</div>
+            <div class="body">{{material.Description}}</div>
+          </v-col>
+        </v-row>
+        <v-divider></v-divider>
+        <div v-for="lesson in material.lessons" :key="lesson.id" class="mx-auto my-4 lesson">
+          <div>
+            <v-row align="center">
+              <v-col cols="2" style="border-left:5px solid green;">
+                <v-avatar size="64">
+                  <v-img :src="$serverUrl(lesson.ThumbnailPath)"></v-img>
+                </v-avatar>
+              </v-col>
+              <v-col cols="3">
+                <div class="caption">タイトル</div>
+                <div>{{lesson.Title}}</div>
+              </v-col>
+              <v-col cols="2"></v-col>
+              <v-col cols="2">
+                <v-btn color="secondary" @click="$router.push($routes.lessons.ide(lesson.ID))">学習</v-btn>
+              </v-col>
+            </v-row>
+            <v-divider></v-divider>
+          </div>
+        </div>
+      </v-container>
+    </div>
   </div>
 </template>
 
 <script>
 import ajax from "@/assets/js/ajax.js";
-import { Url, urlMaterials } from "@/assets/js/url.js";
+import { Url, urlMaterials, urlUsers } from "@/assets/js/url.js";
 export default {
   data() {
     return {
@@ -32,14 +66,33 @@ export default {
           };
           const r = await ajax.get(url.base, data);
           const notFound = -1;
-          return r.data.findIndex(m => m.ID === material.ID) !== notFound;
-        })
-        .then(allowed => {
+          const allowed =
+            r.data.findIndex(m => m.ID === material.ID) !== notFound;
           if (!allowed) {
-            this.error = "この教材をダウンロードしていません";
+            this.error = "この教材を取得していません";
+            return;
           }
+          return material;
+        })
+        .then(async material => {
+          if (!material) {
+            return;
+          }
+          const url = new Url(urlUsers);
+          const data = {
+            id: material.AuthorUserID
+          };
+          const response = await ajax.get(url.base, data);
+          material.author = response.data[0].Name;
+          this.material = material;
         });
     });
   }
 };
 </script>
+
+<style>
+.lesson {
+  width: 60%;
+}
+</style>

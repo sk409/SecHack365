@@ -23,7 +23,6 @@ export default {
     this.$fetchUser(() => {
       const url = new Url(urlUsers);
       ajax.get(url.follower(this.$user.ID)).then(response => {
-        console.log(response);
         this.users = response.data.map(user => {
           return {
             id: user.ID,

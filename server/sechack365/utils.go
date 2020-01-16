@@ -16,27 +16,32 @@ func encrypt(data []byte) []byte {
 	return hash[:]
 }
 
-func initContainer(image, username, directoryPath, consolePort string, ports ...string) (*dockerContainer, error) {
+func buildDockerImage(image, username, directoryPath string) (string, error) {
 	df := newDockerfile(image, username)
 	dockerfilePath := filepath.Join(directoryPath, "Dockerfile")
 	err := df.write(dockerfilePath)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	imagename, err := uuid.NewUUID()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	d := docker{}
 	err = d.buildImage(imagename.String(), filepath.Dir(dockerfilePath))
 	if err != nil {
-		return nil, err
+		return "", err
 	}
+	return imagename.String(), nil
+}
+
+func initDockerContainer(imagename, consolePort string, ports ...string) (*dockerContainer, error) {
+	d := docker{}
 	containername, err := uuid.NewUUID()
 	if err != nil {
 		return nil, err
 	}
-	containerID, err := d.runContainer(containername.String(), imagename.String(), ports...)
+	containerID, err := d.runContainer(containername.String(), imagename, ports...)
 	if err != nil {
 		return nil, err
 	}
