@@ -1,5 +1,5 @@
 package main
 
 type facade interface {
-	Public() (interface{}, error)
+	public() (interface{}, error)
 }

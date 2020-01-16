@@ -2,16 +2,15 @@ package main
 
 import (
 	"fmt"
-	"io"
-	"log"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/sk409/gofile"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -34,6 +33,153 @@ func (a *authHandler) auth(w http.ResponseWriter, r *http.Request) {
 		"authenticated": err != nil,
 	}
 	respondJSON(w, http.StatusOK, response)
+}
+
+type downloadsHandler struct {
+}
+
+func (d *downloadsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		d.fetch(w, r)
+		return
+	case http.MethodPost:
+		d.store(w, r)
+		return
+	}
+	respond(w, http.StatusNotFound)
+}
+
+func (d *downloadsHandler) fetch(w http.ResponseWriter, r *http.Request) {
+	downloads := []download{}
+	err := fetch(r, &downloads)
+	if err != nil {
+		respond(w, http.StatusInternalServerError)
+		return
+	}
+	respondJSON(w, http.StatusOK, downloads)
+}
+
+func (d *downloadsHandler) store(w http.ResponseWriter, r *http.Request) {
+	userID := r.PostFormValue("userID")
+	materialID := r.PostFormValue("materialID")
+	if !notEmptyAll(userID, materialID) {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	userIDUint, err := strconv.ParseUint(userID, 10, 64)
+	if err != nil {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	materialIDUint, err := strconv.ParseUint(materialID, 10, 64)
+	if err != nil {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	u := user{}
+	db.Where("id = ?", userID).First(&u)
+	if u.ID == 0 {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	m := material{}
+	db.Where("id = ?", materialID).First(&m)
+	if m.ID == 0 {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	download := download{
+		UserID:     uint(userIDUint),
+		MaterialID: uint(materialIDUint),
+	}
+	db.Save(&download)
+	if db.Error != nil {
+		respond(w, http.StatusInternalServerError)
+		return
+	}
+	// ID            uint `gorm:"primary_key"`
+	// CreatedAt     time.Time
+	// UpdatedAt     time.Time
+	// DeletedAt     *time.Time `sql:"index"`
+	// Title         string     `gorm:"type:varchar(128);not null;"`
+	// Description   string     `gorm:"type:varchar(1024);not null;"`
+	// ThumbnailPath string     `gorm:"type:varchar(256);not null"`
+	// UserID        uint       `gorm:"not null"`
+	mc := materialClone{
+		Title:         m.Title,
+		Description:   m.Description,
+		ThumbnailPath: strings.TrimPrefix(pathNoimage, cwd),
+		UserID:        m.UserID,
+	}
+	db.Save(&mc)
+	if db.Error != nil {
+		respond(w, http.StatusInternalServerError)
+		return
+	}
+	materialCloneThumbnailPath := filepath.Join(pathPublicImagesMaterialsClones, fmt.Sprintf("%d", mc.ID), filepath.Base(m.ThumbnailPath))
+	err = os.MkdirAll(filepath.Dir(materialCloneThumbnailPath), 0755)
+	if err != nil {
+		respond(w, http.StatusInternalServerError)
+		return
+	}
+	err = gofile.CopyFileToFile(filepath.Join(cwd, m.ThumbnailPath), materialCloneThumbnailPath)
+	if err != nil {
+		respond(w, http.StatusInternalServerError)
+		return
+	}
+	mc.ThumbnailPath = strings.TrimPrefix(materialCloneThumbnailPath, cwd)
+	db.Save(&mc)
+
+	// ID                uint `gorm:"primary_key"`
+	// CreatedAt         time.Time
+	// UpdatedAt         time.Time
+	// DeletedAt         *time.Time `sql:"index"`
+	// Title             string     `gorm:"type:varchar(256);not null"`
+	// Description       string     `gorm:"type:text;not null"`
+	// Book              string     `gorm:"type:text;not null"`
+	// DockerContainerID string     `gorm:"type:char(64);"`
+	// ThumbnailPath     string     `gorm:"type:varchar(256);not null"`
+	// ConsolePort       uint       `gorm:"not null"`
+	// HostConsolePort   uint
+	// UserID            uint `gorm:"not null"`
+
+	lessonMaterials := []lessonMaterial{}
+	db.Where("material_id = ?", m.ID).Find(&lessonMaterials)
+	lessonIDs := make([]uint, len(lessonMaterials))
+	for index, lessonMaterial := range lessonMaterials {
+		lessonIDs[index] = lessonMaterial.LessonID
+	}
+	lessons := []lesson{}
+	db.Where(lessonIDs).Find(&lessons)
+	for _, l := range lessons {
+		lc := lessonClone{
+			Title:         l.Title,
+			Description:   l.Description,
+			Book:          l.Book,
+			ThumbnailPath: strings.TrimPrefix(pathNoimage, cwd),
+			ConsolePort:   l.ConsolePort,
+			UserID:        l.UserID,
+		}
+		db.Save(&lc)
+		if db.Error != nil {
+			respond(w, http.StatusInternalServerError)
+			return
+		}
+		lessonCloneThumbnailPath := filepath.Join(pathPublicImagesMaterialsClones, fmt.Sprintf("%d", lc.ID), filepath.Base(l.ThumbnailPath))
+		err = os.MkdirAll(filepath.Dir(lessonCloneThumbnailPath), 0755)
+		if err != nil {
+			respond(w, http.StatusInternalServerError)
+			return
+		}
+		err = gofile.CopyFileToFile(filepath.Join(cwd, l.ThumbnailPath), lessonCloneThumbnailPath)
+		if err != nil {
+			respond(w, http.StatusInternalServerError)
+			return
+		}
+		//dc := initContainer()
+	}
+	respondJSON(w, http.StatusOK, download)
 }
 
 type filesHandler struct {
@@ -82,9 +228,6 @@ func (f *filesHandler) update(w http.ResponseWriter, r *http.Request) {
 	lessonID := r.PostFormValue("lessonID")
 	path := r.PostFormValue("path")
 	text := r.PostFormValue("text")
-	fmt.Println(lessonID)
-	fmt.Println(path)
-	fmt.Println(text)
 	if !notEmptyAll(lessonID, path) {
 		respond(w, http.StatusBadRequest)
 		return
@@ -164,6 +307,86 @@ func (f *foldersHandler) fetch(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, root)
 }
 
+type followsHandler struct {
+}
+
+func (f *followsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	base := "/follows/"
+	switch r.Method {
+	case http.MethodGet:
+		f.fetch(w, r)
+		return
+	case http.MethodPost:
+		f.store(w, r)
+		return
+	case http.MethodDelete:
+		id, ok := routeWithID(r, base)
+		if ok {
+			f.destory(w, r, id)
+			return
+		}
+	}
+	respond(w, http.StatusNotFound)
+}
+
+func (f *followsHandler) fetch(w http.ResponseWriter, r *http.Request) {
+	follows := []follow{}
+	err := fetch(r, &follows)
+	if err != nil {
+		respond(w, http.StatusInternalServerError)
+		return
+	}
+	respondJSON(w, http.StatusOK, follows)
+}
+
+func (f *followsHandler) store(w http.ResponseWriter, r *http.Request) {
+	followingUserID := r.PostFormValue("followingUserID")
+	followedUserID := r.PostFormValue("followedUserID")
+	if !notEmptyAll(followingUserID, followedUserID) {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	followingUserIDUint, err := strconv.ParseUint(followingUserID, 10, 64)
+	if err != nil {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	followedUserIDUint, err := strconv.ParseUint(followedUserID, 10, 64)
+	if err != nil {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	count := 0
+	db.Model(&user{}).Where("id = ?", followingUserID).Count(&count)
+	if count == 0 {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	db.Model(&user{}).Where("id = ?", followedUserID).Count(&count)
+	if count == 0 {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	follow := follow{
+		FollowingUserID: uint(followingUserIDUint),
+		FollowedUserID:  uint(followedUserIDUint),
+	}
+	db.Save(&follow)
+	if db.Error != nil {
+		respond(w, http.StatusInternalServerError)
+		return
+	}
+	respondJSON(w, http.StatusOK, follow)
+}
+
+func (f *followsHandler) destory(w http.ResponseWriter, r *http.Request, id string) {
+	err := destory(id, follow{}, false)
+	if err != nil {
+		respond(w, http.StatusInternalServerError)
+		return
+	}
+}
+
 type loginHandler struct {
 }
 
@@ -208,29 +431,27 @@ type lessonsHandler struct {
 }
 
 func (l *lessonsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	base := "/lessons/"
 	switch r.Method {
 	case http.MethodGet:
 		l.fetch(w, r)
+		return
 	case http.MethodPost:
 		l.store(w, r)
+		return
 	case http.MethodPut:
-		// fmt.Println(r.URL.Path)
-		regex := regexp.MustCompile("/lessons/([0-9]+)")
-		matches := regex.FindAllSubmatch([]byte(r.URL.Path), -1)
-		// fmt.Print(string(matches[0][1]))
-		if len(matches) == 1 && len(matches[0]) == 2 {
-			l.update(w, r, string(matches[0][1]))
-		} else {
-			respond(w, http.StatusNotFound)
+		id, ok := routeWithID(r, base)
+		if ok {
+			l.update(w, r, id)
+			return
 		}
-	default:
-		respond(w, http.StatusNotFound)
 	}
+	respond(w, http.StatusNotFound)
 }
 
 func (l *lessonsHandler) fetch(w http.ResponseWriter, r *http.Request) {
 	lessons := []lesson{}
-	err := fetch(w, r, &lessons)
+	err := fetch(r, &lessons)
 	if err != nil {
 		respond(w, http.StatusInternalServerError)
 		return
@@ -240,11 +461,20 @@ func (l *lessonsHandler) fetch(w http.ResponseWriter, r *http.Request) {
 
 func (l *lessonsHandler) store(w http.ResponseWriter, r *http.Request) {
 	r.ParseMultipartForm(1 << 62)
-	title := r.MultipartForm.Value["title"][0]
-	description := r.MultipartForm.Value["description"][0]
-	image := r.MultipartForm.Value["os"][0]
-	consolePort := r.MultipartForm.Value["consolePort"][0]
-	userID := r.MultipartForm.Value["userID"][0]
+	titles := r.MultipartForm.Value["title"]
+	descriptions := r.MultipartForm.Value["description"]
+	images := r.MultipartForm.Value["os"]
+	consolePorts := r.MultipartForm.Value["consolePort"]
+	userIDs := r.MultipartForm.Value["userID"]
+	if !notEmptyAll(titles, descriptions, images, consolePorts, userIDs) {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	title := titles[0]
+	description := descriptions[0]
+	image := images[0]
+	consolePort := consolePorts[0]
+	userID := userIDs[0]
 	ports := r.MultipartForm.Value["ports[]"]
 	ports = append(ports, consolePort)
 	if !notEmptyAll(title, description, image, consolePort, userID) {
@@ -262,11 +492,12 @@ func (l *lessonsHandler) store(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	lesson := lesson{
-		Title:       title,
-		Description: description,
-		Book:        "",
-		ConsolePort: uint(consolePortUint),
-		UserID:      uint(userIDUint),
+		Title:         title,
+		Description:   description,
+		Book:          "",
+		ConsolePort:   uint(consolePortUint),
+		ThumbnailPath: strings.TrimPrefix(pathNoimage, cwd),
+		UserID:        uint(userIDUint),
 	}
 	db.Save(&lesson)
 	if db.Error != nil {
@@ -283,85 +514,21 @@ func (l *lessonsHandler) store(w http.ResponseWriter, r *http.Request) {
 	os.MkdirAll(lessonDirectoryPath, 0755)
 	thumbnailHeaders := r.MultipartForm.File["thumbnail"]
 	if len(thumbnailHeaders) == 1 {
-		thumbnailHeader := thumbnailHeaders[0]
-		filenameComponents := strings.Split(thumbnailHeader.Filename, ".")
-		if 2 <= len(filenameComponents) {
-			extension := filenameComponents[len(filenameComponents)-1]
-			thumbnailPath := filepath.Join(pathLessonThumbnails, fmt.Sprintf("%d", lesson.ID), "thumbnail."+extension)
-			os.MkdirAll(filepath.Dir(thumbnailPath), 0755)
-			thumbnailFile, err := os.Create(filepath.Join(thumbnailPath))
-			if err != nil {
-				log.Println(err)
-				respond(w, http.StatusInternalServerError)
-				return
-			}
-			defer thumbnailFile.Close()
-			thumbnail, err := thumbnailHeader.Open()
-			if err != nil {
-				log.Println(err)
-				respond(w, http.StatusInternalServerError)
-				return
-			}
-			io.Copy(thumbnailFile, thumbnail)
-			lesson.ThumbnailPath = strings.TrimPrefix(thumbnailPath, cwd)
-		}
-	}
-	df := newDockerfile(image, u.Name)
-	dockerfilePath := filepath.Join(lessonDirectoryPath, "Dockerfile")
-	err = df.write(dockerfilePath)
-	if err != nil {
-		respond(w, http.StatusInternalServerError)
-		return
-	}
-	imagename, err := uuid.NewUUID()
-	if err != nil {
-		respond(w, http.StatusInternalServerError)
-		return
-	}
-	d := docker{}
-	err = d.buildImage(imagename.String(), filepath.Dir(dockerfilePath))
-	if err != nil {
-		respond(w, http.StatusInternalServerError)
-		return
-	}
-	containername, err := uuid.NewUUID()
-	if err != nil {
-		respond(w, http.StatusInternalServerError)
-		return
-	}
-	containerID, err := d.runContainer(containername.String(), imagename.String(), ports...)
-	if err != nil {
-		respond(w, http.StatusInternalServerError)
-		return
-	}
-	lesson.DockerContainerID = string(containerID)
-	_, err = d.exec(containername.String(), []string{"-d"}, "gotty", "-w", "-p", consolePort, "bash")
-	if err != nil {
-		respond(w, http.StatusInternalServerError)
-		return
-	}
-	portsOutput, err := d.port(containername.String())
-	if err != nil {
-		respond(w, http.StatusInternalServerError)
-		return
-	}
-	hostPorts := make(map[string]uint)
-	for _, line := range strings.Split(string(portsOutput), "\n") {
-		if line == "" {
-			continue
-		}
-		components := strings.Split(line, " ")
-		port := strings.Split(components[0], "/")[0]
-		hostPort, err := strconv.ParseUint(strings.Split(components[2], ":")[1], 10, 64)
-		hostPorts[port] = uint(hostPort)
+		thumbnailPath := filepath.Join(pathPublicImagesLessons, fmt.Sprintf("%d", lesson.ID), "thumbnail")
+		path, err := saveFile(thumbnailPath, thumbnailHeaders[0])
 		if err != nil {
 			respond(w, http.StatusInternalServerError)
 			return
 		}
-		if port == consolePort {
-			lesson.HostConsolePort = uint(hostPort)
-		}
+		lesson.ThumbnailPath = strings.TrimPrefix(path, cwd)
 	}
+	dc, err := initContainer(image, u.Name, lessonDirectoryPath, consolePort, ports...)
+	if err != nil {
+		respond(w, http.StatusInternalServerError)
+		return
+	}
+	lesson.DockerContainerID = dc.id
+	lesson.HostConsolePort = dc.hostPorts[consolePort]
 	for _, port := range ports {
 		portUint, err := strconv.ParseUint(port, 10, 64)
 		if err != nil {
@@ -370,7 +537,7 @@ func (l *lessonsHandler) store(w http.ResponseWriter, r *http.Request) {
 		}
 		lessonPort := lessonPort{
 			Port:     uint(portUint),
-			HostPort: hostPorts[port],
+			HostPort: dc.hostPorts[port],
 			LessonID: lesson.ID,
 		}
 		db.Save(&lessonPort)
@@ -407,6 +574,93 @@ func (l *logoutHandler) logout(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, newCookie(cookieNameSessionID, "", -1))
 }
 
+type materialsHandler struct {
+}
+
+func (m *materialsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		m.fetch(w, r)
+	case http.MethodPost:
+		m.store(w, r)
+	default:
+		respond(w, http.StatusNotFound)
+	}
+}
+
+func (m *materialsHandler) fetch(w http.ResponseWriter, r *http.Request) {
+	materials := []material{}
+	err := fetch(r, &materials)
+	if err != nil {
+		respond(w, http.StatusInternalServerError)
+		return
+	}
+	respondJSON(w, http.StatusOK, materials)
+}
+
+func (m *materialsHandler) store(w http.ResponseWriter, r *http.Request) {
+	r.ParseMultipartForm(1 << 62)
+	titles := r.MultipartForm.Value["title"]
+	descriptions := r.MultipartForm.Value["description"]
+	userIDs := r.MultipartForm.Value["userID"]
+	if !notEmptyAll(titles, descriptions, userIDs) {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	title := titles[0]
+	description := descriptions[0]
+	userID := userIDs[0]
+	lessonIDs := r.MultipartForm.Value["lessonIDs[]"]
+	if !notEmptyAll(title, description, userID) {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	userIDUint, err := strconv.ParseUint(userID, 10, 64)
+	if err != nil {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	material := material{
+		Title:         title,
+		Description:   description,
+		ThumbnailPath: strings.TrimPrefix(pathNoimage, cwd),
+		UserID:        uint(userIDUint),
+	}
+	db.Save(&material)
+	if db.Error != nil {
+		respond(w, http.StatusInternalServerError)
+		return
+	}
+	thumbnailHeaders := r.MultipartForm.File["thumbnail"]
+	if len(thumbnailHeaders) == 1 {
+		thumbnailPath := filepath.Join(pathPublicImagesMaterials, fmt.Sprintf("%d", material.ID), "thumbnail")
+		path, err := saveFile(thumbnailPath, thumbnailHeaders[0])
+		if err != nil {
+			respond(w, http.StatusInternalServerError)
+			return
+		}
+		material.ThumbnailPath = strings.TrimPrefix(path, cwd)
+	}
+	for _, lessonID := range lessonIDs {
+		lessonIDUint, err := strconv.ParseUint(lessonID, 10, 64)
+		if err != nil {
+			continue
+		}
+		count := 0
+		db.Model(&lesson{}).Where("id = ?", lessonID).Count(&count)
+		//log.Println(count)
+		if count == 0 {
+			continue
+		}
+		lm := lessonMaterial{
+			LessonID:   uint(lessonIDUint),
+			MaterialID: material.ID,
+		}
+		db.Save(&lm)
+	}
+	respondJSON(w, http.StatusOK, material)
+}
+
 type registerHandler struct {
 }
 
@@ -436,7 +690,11 @@ func (h *registerHandler) register(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		respond(w, http.StatusInternalServerError)
 	}
-	u := user{Name: username, Password: string(hashedPassword)}
+	u := user{
+		Name:             username,
+		Password:         string(hashedPassword),
+		ProfileImagePath: strings.TrimPrefix(pathNoimage, cwd),
+	}
 	db.Save(&u)
 	if db.Error != nil {
 		respond(w, http.StatusInternalServerError)
@@ -479,18 +737,102 @@ type usersHandler struct {
 }
 
 func (u *usersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	base := "/users/"
 	switch r.Method {
 	case http.MethodGet:
-		u.fetch(w, r)
-	default:
-		respond(w, http.StatusNotFound)
+		switch r.URL.Path {
+		case base:
+			u.fetch(w, r)
+			return
+		case path.Join(base, "search"):
+			u.search(w, r)
+			return
+		default:
+			id, ok := routeWithID(r, base)
+			if ok {
+				switch r.URL.Path {
+				case base + id + "/follow":
+					u.follow(w, r, id, false)
+					return
+				case base + id + "/follower":
+					u.follow(w, r, id, true)
+					return
+				case base + id + "/materials/downloaded":
+					u.downloadedMaterials(w, r, id)
+				}
+			}
+		}
 	}
+	respond(w, http.StatusNotFound)
 }
 
 func (u *usersHandler) fetch(w http.ResponseWriter, r *http.Request) {
 	users := []user{}
-	err := fetch(w, r, &users)
+	err := fetch(r, &users)
 	if err != nil {
+		respond(w, http.StatusInternalServerError)
+		return
+	}
+	respondJSON(w, http.StatusOK, users)
+}
+
+func (u *usersHandler) follow(w http.ResponseWriter, r *http.Request, id string, follower bool) {
+	follows := []follow{}
+	if follower {
+		db.Where("followed_user_id = ?", id).Find(&follows)
+	} else {
+		db.Where("following_user_id = ?", id).Find(&follows)
+	}
+	if db.Error != nil {
+		respond(w, http.StatusInternalServerError)
+		return
+	}
+	userIDs := make([]uint, len(follows))
+	for index, follow := range follows {
+		if follower {
+			userIDs[index] = follow.FollowingUserID
+		} else {
+			userIDs[index] = follow.FollowedUserID
+		}
+	}
+	users := []user{}
+	db.Where(userIDs).Find(&users)
+	if db.Error != nil {
+		respond(w, http.StatusInternalServerError)
+		return
+	}
+	respondJSON(w, http.StatusOK, users)
+}
+
+func (u *usersHandler) downloadedMaterials(w http.ResponseWriter, r *http.Request, id string) {
+	downloads := []download{}
+	db.Where("user_id = ?", id).Find(&downloads)
+	if db.Error != nil {
+		respond(w, http.StatusInternalServerError)
+		return
+	}
+	materialIDs := make([]uint, len(downloads))
+	for index, download := range downloads {
+		materialIDs[index] = download.MaterialID
+	}
+	materials := []material{}
+	db.Where(materialIDs).Find(&materials)
+	if db.Error != nil {
+		respond(w, http.StatusInternalServerError)
+		return
+	}
+	respondJSON(w, http.StatusOK, materials)
+}
+
+func (u *usersHandler) search(w http.ResponseWriter, r *http.Request) {
+	keyword := r.URL.Query().Get("keyword")
+	if !notEmptyAll(keyword) {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	users := []user{}
+	db.Where("name LIKE ?", "%"+keyword+"%").Find(&users)
+	if db.Error != nil {
 		respond(w, http.StatusInternalServerError)
 		return
 	}

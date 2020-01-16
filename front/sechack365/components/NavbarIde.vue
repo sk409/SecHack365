@@ -8,7 +8,13 @@
     </v-app-bar>
     <v-navigation-drawer v-model="drawer" app class="grey lighten-4">
       <div class="pa-2">
-        <v-img :src="thumbnailURL" width="60%" contain class="d-block mx-auto"></v-img>
+        <v-img
+          v-if="lesson"
+          :src="$serverUrl(lesson.ThumbnailPath)"
+          width="60%"
+          contain
+          class="d-block mx-auto"
+        ></v-img>
       </div>
       <div class="text-center title">{{ lesson ? lesson.Title : "" }}</div>
       <v-divider class="my-2"></v-divider>
@@ -82,18 +88,6 @@ export default {
         }
       ]
     };
-  },
-  computed: {
-    thumbnailURL() {
-      console.log(
-        this.lesson
-          ? process.env.serverOrigin + "/" + this.lesson.ThumbnailPath
-          : ""
-      );
-      return this.lesson
-        ? process.env.serverOrigin + "/" + this.lesson.ThumbnailPath
-        : "";
-    }
   },
   methods: {
     serverURL(port) {

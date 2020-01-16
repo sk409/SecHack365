@@ -14,13 +14,17 @@ const (
 )
 
 var (
-	cwd                  string
-	pathLessons          string
-	pathLessonThumbnails string
-	pathPublic           string
-	pathPublicImages     string
-	pathThumbnails       string
-	sessionManager       = gosession.Manager{Provider: gosession.NewMemoryProvider()}
+	cwd                             string
+	pathLessons                     string
+	pathNoimage                     string
+	pathPublic                      string
+	pathPublicImages                string
+	pathPublicImagesLessons         string
+	pathPublicImagesLessonsClones   string
+	pathPublicImagesMaterials       string
+	pathPublicImagesMaterialsClones string
+	pathPublicImagesUsers           string
+	sessionManager                  = gosession.Manager{Provider: gosession.NewMemoryProvider()}
 )
 
 func init() {
@@ -32,8 +36,14 @@ func init() {
 	pathLessons = filepath.Join(cwd, "lessons")
 	pathPublic = filepath.Join(cwd, "public")
 	pathPublicImages = filepath.Join(pathPublic, "images")
-	pathThumbnails = filepath.Join(pathPublicImages, "thumbnails")
-	pathLessonThumbnails = filepath.Join(pathThumbnails, "lesson")
+	pathPublicImagesLessons = filepath.Join(pathPublicImages, "lessons")
+	pathPublicImagesLessonsClones = filepath.Join(pathPublicImagesLessons, "clones")
+	pathPublicImagesMaterials = filepath.Join(pathPublicImages, "materials")
+	pathPublicImagesMaterialsClones = filepath.Join(pathPublicImagesMaterials, "clones")
+	pathPublicImagesUsers = filepath.Join(pathPublicImages, "users")
+	pathNoimage = filepath.Join(pathPublic, "noimage.png")
 	os.Mkdir(pathLessons, 0755)
-	os.MkdirAll(pathLessonThumbnails, 0755)
+	os.MkdirAll(pathPublicImagesLessonsClones, 0755)
+	os.MkdirAll(pathPublicImagesMaterialsClones, 0755)
+	os.MkdirAll(pathPublicImagesUsers, 0755)
 }

@@ -5,46 +5,15 @@
     <v-container class="mt-3">
       <v-card class="pa-4">
         <v-form ref="form">
-          <v-file-input
-            ref="fileInput"
-            v-model="thumbnail"
-            label="サムネイル画像"
-          ></v-file-input>
-          <v-text-field
-            v-model="title"
-            :rules="titleRules"
-            required
-            label="タイトル"
-          ></v-text-field>
-          <v-textarea
-            v-model="description"
-            :rules="descriptionRules"
-            required
-            label="説明"
-          ></v-textarea>
-          <v-select
-            v-model="os"
-            :items="osList"
-            :rules="osRules"
-            required
-            label="OS"
-          ></v-select>
-          <v-text-field
-            v-model="consolePort"
-            type="number"
-            label="コンソール用のポート"
-          ></v-text-field>
+          <v-file-input v-model="thumbnail" label="サムネイル画像"></v-file-input>
+          <v-text-field v-model="title" :rules="titleRules" required label="タイトル"></v-text-field>
+          <v-textarea v-model="description" :rules="descriptionRules" required label="説明"></v-textarea>
+          <v-select v-model="os" :items="osList" :rules="osRules" required label="OS"></v-select>
+          <v-text-field v-model="consolePort" type="number" label="コンソール用のポート"></v-text-field>
           <v-text-field v-model="ports" label="公開するポート"></v-text-field>
         </v-form>
         <v-card-actions>
-          <v-btn
-            depressed
-            :loading="loading"
-            color="primary"
-            class="mx-auto"
-            @click="submit"
-            >作成</v-btn
-          >
+          <v-btn depressed :loading="loading" color="primary" class="mx-auto" @click="submit">作成</v-btn>
         </v-card-actions>
       </v-card>
     </v-container>
@@ -83,6 +52,9 @@ export default {
       ]
     };
   },
+  created() {
+    this.$fetchUser();
+  },
   methods: {
     submit() {
       if (this.$refs.form.validate()) {
@@ -93,7 +65,7 @@ export default {
           description: this.description,
           os: this.os,
           consolePort: this.consolePort,
-          userID: this.$store.state.users.user.ID,
+          userID: this.$user.ID,
           "ports[]": this.ports.split(" ")
         };
         const config = {
@@ -101,9 +73,8 @@ export default {
             "content-type": "multipart/form-data"
           }
         };
-        // this.loading = true;
+        this.loading = true;
         ajax.post(url.base, data, config).then(response => {
-          console.log(response);
           this.loading = false;
           this.$router.push(this.$routes.dashboard.lessons);
         });

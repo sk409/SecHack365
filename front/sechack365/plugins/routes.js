@@ -2,6 +2,9 @@ import Vue from "vue";
 Vue.prototype.$routes = {
   dashboard: {
     base: "/dashboard",
+    account: "/dashboard/account",
+    follow: "/dashboard/follow",
+    follower: "/dashboard/follower",
     lessons: "/dashboard/lessons",
     materials: {
       created: "/dashboard/materials/created",
@@ -27,7 +30,24 @@ Vue.prototype.$routes = {
   logout: {
     base: "/logout"
   },
+  materials: {
+    create: "/materials/create",
+    show(id) {
+      return "/materials/" + id;
+    },
+    showDownloaded(id) {
+      return "/materials/" + id + "/downloaded";
+    }
+  },
   register: {
     base: "/register"
+  },
+  users: {
+    edit(id) {
+      return "/users/" + id + "/edit";
+    },
+    show(id) {
+      return "/users/" + id;
+    }
   }
 };

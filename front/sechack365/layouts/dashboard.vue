@@ -1,6 +1,6 @@
 <template>
   <v-app class="grey lighten-4">
-    <Navbar></Navbar>
+    <Navbar :user="$user"></Navbar>
     <v-content class="white">
       <div class="h-100">
         <v-container fluid class="h-100">
@@ -18,9 +18,7 @@
                       <v-icon>{{ sidebarLink.icon }}</v-icon>
                     </v-list-item-icon>
                     <v-list-item-content>
-                      <v-list-item-title>
-                        {{ sidebarLink.title }}
-                      </v-list-item-title>
+                      <v-list-item-title>{{ sidebarLink.title }}</v-list-item-title>
                     </v-list-item-content>
                   </v-list-item>
                 </v-list-item-group>
@@ -60,9 +58,27 @@ export default {
           title: "作成したレッスン",
           icon: "mdi-monitor-clean",
           route: this.$routes.dashboard.lessons
+        },
+        {
+          title: "フォロー",
+          icon: "mdi-account-check",
+          route: this.$routes.dashboard.follow
+        },
+        {
+          title: "フォロワー",
+          icon: "mdi-account-star",
+          route: this.$routes.dashboard.follower
+        },
+        {
+          title: "アカウント情報",
+          icon: "mdi-account-badge-horizontal",
+          route: this.$routes.dashboard.account
         }
       ]
     };
+  },
+  created() {
+    this.$fetchUser();
   }
 };
 </script>

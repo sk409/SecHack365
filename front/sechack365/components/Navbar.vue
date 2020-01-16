@@ -9,7 +9,7 @@
         <template v-slot:activator="{ on }">
           <!-- <v-avatar v-on="on">
             <img src="@/static/v.png" alt="" />
-          </v-avatar> -->
+          </v-avatar>-->
           <v-btn v-on="on" icon>
             <v-icon>mdi-account</v-icon>
           </v-btn>
@@ -24,9 +24,7 @@
               <v-icon>{{ accountLink.icon }}</v-icon>
             </v-list-item-icon>
             <v-list-item-content>
-              <v-list-item-title>
-                {{ accountLink.title }}
-              </v-list-item-title>
+              <v-list-item-title>{{ accountLink.title }}</v-list-item-title>
             </v-list-item-content>
           </v-list-item>
         </v-list-item-group>
@@ -35,11 +33,7 @@
     <v-navigation-drawer v-model="drawer" app class="grey lighten-4">
       <v-list>
         <v-list-item-group>
-          <v-list-item
-            v-for="navLink in navLinks"
-            :key="navLink.title"
-            :to="navLink.route"
-          >
+          <v-list-item v-for="navLink in navLinks" :key="navLink.title" :to="navLink.route">
             <v-list-item-icon>
               <v-icon>{{ navLink.icon }}</v-icon>
             </v-list-item-icon>
@@ -55,6 +49,12 @@
 
 <script>
 export default {
+  props: {
+    user: {
+      required: true,
+      validator: user => typeof user === "object" || user === null
+    }
+  },
   data() {
     return {
       drawer: false,
@@ -79,7 +79,7 @@ export default {
   },
   computed: {
     accountLinks() {
-      if (this.$store.state.users.user) {
+      if (this.user) {
         return [
           {
             title: "ダッシュボード",

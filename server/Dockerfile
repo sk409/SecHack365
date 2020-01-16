@@ -4,6 +4,7 @@ RUN go get -u github.com/google/uuid
 RUN go get -u github.com/jinzhu/gorm
 RUN go get -u github.com/jinzhu/gorm/dialects/mysql
 RUN go get -u github.com/sk409/goconst
+RUN go get -u github.com/sk409/gofile
 RUN go get -u github.com/sk409/gosession
 RUN go get -u golang.org/x/crypto/bcrypt
 

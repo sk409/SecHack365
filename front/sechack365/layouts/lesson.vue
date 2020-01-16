@@ -1,7 +1,7 @@
 <template>
   <v-app class="grey lighten-4">
     <NavbarIde v-if="isIde" :lesson="lesson"></NavbarIde>
-    <Navbar v-else></Navbar>
+    <Navbar v-else :user="$user"></Navbar>
     <v-content class="white">
       <div v-if="isLoading">LOADING</div>
       <div v-else-if="isEditing" class="h-100">
@@ -23,7 +23,7 @@
 import ajax from "@/assets/js/ajax.js";
 import Navbar from "@/components/Navbar.vue";
 import NavbarIde from "@/components/NavbarIde.vue";
-import { Url, urlLessons } from "@/assets/js/url.js";
+import { Url, urlLessons, urlUser } from "@/assets/js/url.js";
 const statusLoading = "statusLoading";
 const statusEditing = "statusEditing";
 const statusPermissionError = "statusPermissionError";
@@ -37,6 +37,7 @@ export default {
     return {
       status: statusLoading,
       lesson: null
+      // user: null
     };
   },
   computed: {
@@ -51,28 +52,25 @@ export default {
     },
     isPermissionError() {
       return this.status === statusPermissionError;
-    },
-    thumbnailURL() {
-      if (!this.lesson) {
-        return "";
-      }
-      return process.env.serverOrigin + this.lesson.ThumbnailPath;
     }
   },
   created() {
-    const lessonID = this.$route.params.id;
-    const url = new Url(urlLessons);
-    const data = {
-      user_id: this.$store.state.users.user.ID
-    };
-    ajax.get(url.base, data).then(response => {
-      const lessons = response.data;
-      const index = lessons.findIndex(lesson => lesson.ID == lessonID);
-      const notFound = -1;
-      this.status = index === notFound ? statusPermissionError : statusEditing;
-      if (this.isEditing) {
-        this.lesson = lessons[index];
-      }
+    this.$fetchUser(() => {
+      const lessonID = this.$route.params.id;
+      const urlL = new Url(urlLessons);
+      const data = {
+        user_id: this.$user.ID
+      };
+      ajax.get(urlL.base, data).then(response => {
+        const lessons = response.data;
+        const index = lessons.findIndex(lesson => lesson.ID == lessonID);
+        const notFound = -1;
+        this.status =
+          index === notFound ? statusPermissionError : statusEditing;
+        if (this.isEditing) {
+          this.lesson = lessons[index];
+        }
+      });
     });
   }
 };

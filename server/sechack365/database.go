@@ -16,4 +16,10 @@ func init() {
 	db.AutoMigrate(user{})
 	db.AutoMigrate(lesson{}).AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE")
 	db.AutoMigrate(lessonPort{}).AddForeignKey("lesson_id", "lessons(id)", "CASCADE", "CASCADE")
+	db.AutoMigrate(material{}).AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE")
+	db.AutoMigrate(lessonMaterial{}).AddForeignKey("lesson_id", "lessons(id)", "CASCADE", "CASCADE").AddForeignKey("material_id", "materials(id)", "CASCADE", "CASCADE")
+	db.AutoMigrate(follow{}).AddForeignKey("following_user_id", "users(id)", "CASCADE", "CASCADE").AddForeignKey("followed_user_id", "users(id)", "CASCADE", "CASCADE").AddUniqueIndex("following_user_id_followed_user_id_unique", "following_user_id", "followed_user_id")
+	db.AutoMigrate(download{}).AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE").AddForeignKey("material_id", "materials(id)", "CASCADE", "CASCADE")
+	db.AutoMigrate(materialClone{}).AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE")
+	db.AutoMigrate(lessonClone{}).AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE")
 }

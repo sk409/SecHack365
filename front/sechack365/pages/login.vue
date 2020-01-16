@@ -3,22 +3,12 @@
     <v-container class="mt-3">
       <v-row justify="center">
         <v-col>
-          <AuthForm
-            button-icon="mdi-login"
-            title="ログイン"
-            @submit="login"
-          ></AuthForm>
+          <AuthForm button-icon="mdi-login" title="ログイン" @submit="login"></AuthForm>
         </v-col>
       </v-row>
       <v-row justify="center">
         <v-col sm="4">
-          <v-btn
-            color="primary"
-            :to="$routes.register.base"
-            block
-            class="mx-auto"
-            >アカウントをお持ちでない方</v-btn
-          >
+          <v-btn color="primary" :to="$routes.register.base" block class="mx-auto">アカウントをお持ちでない方</v-btn>
         </v-col>
       </v-row>
     </v-container>
@@ -34,9 +24,7 @@
 <script>
 import ajax from "@/assets/js/ajax.js";
 import AuthForm from "@/components/AuthForm.vue";
-import Mutations from "@/assets/js/mutations.js";
 import { Url, urlLogin, urlUsers } from "@/assets/js/url.js";
-import { mapMutations } from "vuex";
 export default {
   components: {
     AuthForm
@@ -48,9 +36,6 @@ export default {
     };
   },
   methods: {
-    ...mapMutations({
-      setUser: Mutations.users().setUser
-    }),
     login(username, password) {
       const url = new Url(urlLogin);
       const data = {
@@ -68,7 +53,6 @@ export default {
           this.errorMessage = "パスワードが正しくありません";
           this.snackbar = true;
         } else {
-          this.setUser(response.data);
           this.$router.push(this.$routes.dashboard.materials.downloaded);
         }
       });

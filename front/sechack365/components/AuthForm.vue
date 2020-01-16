@@ -4,6 +4,12 @@
       <v-card-title>{{ title }}</v-card-title>
       <v-card-text>
         <v-form ref="form">
+          <!-- <div class="d-flex">
+            <div class="profile-image-container">
+              <img src alt />
+            </div>
+            <v-file-input></v-file-input>
+          </div>-->
           <v-text-field
             v-model="username"
             :rules="usernameRules"

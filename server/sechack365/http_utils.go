@@ -2,9 +2,14 @@ package main
 
 import (
 	"encoding/json"
+	"io"
 	"io/ioutil"
+	"mime/multipart"
 	"net/http"
+	"os"
+	"path/filepath"
 	"reflect"
+	"regexp"
 	"strings"
 
 	"github.com/sk409/gotype"
@@ -12,7 +17,16 @@ import (
 	"github.com/sk409/goconst"
 )
 
-func fetch(w http.ResponseWriter, r *http.Request, model interface{}) error {
+func destory(id string, model interface{}, softDelete bool) error {
+	if softDelete {
+		db.Where("id = ?", id).Delete(model)
+	} else {
+		db.Where("id = ?", id).Unscoped().Delete(model)
+	}
+	return db.Error
+}
+
+func fetch(r *http.Request, model interface{}) error {
 	query := make(map[string]interface{})
 	for key, values := range r.URL.Query() {
 		query[key] = values[0]
@@ -42,7 +56,7 @@ func public(data interface{}) (interface{}, error) {
 		for index := 0; index < rv.Len(); index++ {
 			rvi := rv.Index(index).Interface()
 			if f, ok := rvi.(facade); ok {
-				p, err := f.Public()
+				p, err := f.public()
 				if err != nil {
 					return nil, err
 				}
@@ -79,6 +93,42 @@ func respondJSON(w http.ResponseWriter, statusCode int, body interface{}) {
 func respondMessage(w http.ResponseWriter, statusCode int, message string) {
 	respond(w, statusCode)
 	w.Write([]byte(message))
+}
+
+func routeWithID(r *http.Request, base string) (string, bool) {
+	if !strings.HasPrefix(base, "/") {
+		base = "/" + base
+	}
+	if !strings.HasSuffix(base, "/") {
+		base += "/"
+	}
+	regex := regexp.MustCompile(base + "([0-9]+)")
+	matches := regex.FindAllSubmatch([]byte(r.URL.Path), -1)
+	if len(matches) != 1 || len(matches[0]) != 2 {
+		return "", false
+	}
+	return string(matches[0][1]), true
+}
+
+func saveFile(path string, header *multipart.FileHeader) (string, error) {
+	filenameComponents := strings.Split(header.Filename, ".")
+	extension := ""
+	if 2 <= len(filenameComponents) {
+		extension = filenameComponents[len(filenameComponents)-1]
+	}
+	path += "." + extension
+	os.MkdirAll(filepath.Dir(path), 0755)
+	file, err := os.Create(filepath.Join(path))
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+	multipartFile, err := header.Open()
+	if err != nil {
+		return "", err
+	}
+	io.Copy(file, multipartFile)
+	return path, nil
 }
 
 func update(r *http.Request, id string, model interface{}) error {

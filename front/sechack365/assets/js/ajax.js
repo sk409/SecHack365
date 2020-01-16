@@ -36,6 +36,10 @@ class Ajax {
   put(url, data, config) {
     return Axios.put(url, makeData(data, config), config);
   }
+
+  delete(url, data, config) {
+    return Axios.delete(url, makeData(data, config), config);
+  }
 }
 
 const ajax = new Ajax();

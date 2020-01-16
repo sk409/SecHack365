@@ -23,9 +23,7 @@
 <script>
 import ajax from "@/assets/js/ajax.js";
 import AuthForm from "@/components/AuthForm.vue";
-import Mutations from "@/assets/js/mutations.js";
 import { Url, urlRegister, urlUsers } from "@/assets/js/url.js";
-import { mapMutations } from "vuex";
 export default {
   components: {
     AuthForm
@@ -42,9 +40,6 @@ export default {
     });
   },
   methods: {
-    ...mapMutations({
-      setUser: Mutations.users().setUser
-    }),
     register(username, password) {
       const url = new Url(urlRegister);
       const data = {
@@ -56,7 +51,6 @@ export default {
       };
       ajax.post(url.base, data, config).then(response => {
         if (response.status === 200) {
-          this.setUser(response.data);
           this.$router.push(this.$routes.dashboard.materials.downloaded);
         }
       });
