@@ -112,7 +112,7 @@ export default {
     },
     filetreeStyle() {
       return {
-        height: this.ideHeight + "px"
+        height: this.ideHeight * 0.99 + "px"
       };
     }
   },
@@ -149,6 +149,7 @@ export default {
         ajax.get(url.base, data).then(response => {
           item.text = response.data.Text;
           this.file = item;
+          editor.setReadOnly(false);
           editor.setValue(item.text);
           editor.getSession().setMode(aceMode(item.path));
         });
@@ -184,6 +185,7 @@ export default {
       });
       editor.setTheme("ace/theme/xcode");
       editor.setFontSize(20);
+      editor.setReadOnly(true);
       editor.session.on("change", delta => {
         if (delta.action === "insert" && this.file.text !== editor.getValue()) {
           this.file.text = editor.getValue();
@@ -210,7 +212,7 @@ export default {
 }
 .console {
   width: 100%;
-  height: 40%;
+  height: 39%;
 }
 .file-tree {
   overflow: scroll;

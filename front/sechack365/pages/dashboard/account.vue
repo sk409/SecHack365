@@ -11,8 +11,11 @@
         <div class="mt-3 body">バイオテキスト</div>
       </div>
     </div>
-    <v-divider></v-divider>
-    <v-btn v-if="$user" color="accent" fab fixed right bottom @click="showAuthForm">
+    <v-divider class="my-3"></v-divider>
+    <div class="text-center">
+      <v-btn color="secondary" @click="logout">ログアウト</v-btn>
+    </div>
+    <v-btn v-if="$user" color="accent" fab fixed right bottom>
       <v-icon>mdi-account-edit</v-icon>
     </v-btn>
   </v-container>
@@ -20,6 +23,7 @@
 
 <script>
 import ajax from "@/assets/js/ajax.js";
+import { Url, urlLogout } from "@/assets/js/url.js";
 export default {
   layout: "dashboard",
   computed: {
@@ -36,7 +40,14 @@ export default {
     this.$nuxt.$emit("setTitle", "アカウント情報");
   },
   methods: {
-    showAuthForm() {}
+    logout() {
+      const url = new Url(urlLogout);
+      ajax.post(url.base, {}, { withCredentials: true }).then(response => {
+        if (response.status === 200) {
+          this.$router.push("/");
+        }
+      });
+    }
   }
 };
 </script>

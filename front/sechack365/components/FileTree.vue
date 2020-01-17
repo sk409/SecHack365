@@ -1,5 +1,5 @@
 <template>
-  <div style="overflow:scroll;height:100px;">
+  <div>
     <div v-for="item in items" :key="item.name">
       <FileTreeItem :item="item" @click="clickItem"></FileTreeItem>
     </div>

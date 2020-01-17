@@ -12,8 +12,8 @@
     <v-divider></v-divider>
     <div class="subtitle-1 my-2">この教材に含まれているレッスン一覧</div>
     <div v-if="material" class="lesson-card-container">
-      <v-card v-for="lesson in material.lessons" :key="lesson.ID" class="ma-2">
-        <v-img v-if="lesson" :src="$serverUrl(lesson.ThumbnailPath)"></v-img>
+      <v-card v-for="lesson in material.lessons" :key="lesson.ID" class="ma-4">
+        <v-img class="mx-auto" width="200" v-if="lesson" :src="$serverUrl(lesson.ThumbnailPath)"></v-img>
         <v-divider></v-divider>
         <v-card-title>{{lesson.Title | truncate(12)}}</v-card-title>
         <v-card-text>{{lesson.Description | truncate(30)}}</v-card-text>
@@ -104,8 +104,10 @@ export default {
 </script>
 
 <style>
-.lesson-card-container {
-  display: grid;
-  grid-template-columns: repeat(5, 20%);
+@media screen and (min-width: 960px) {
+  .lesson-card-container {
+    display: grid;
+    grid-template-columns: repeat(5, 20%);
+  }
 }
 </style>

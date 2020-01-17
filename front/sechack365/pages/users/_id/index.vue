@@ -155,8 +155,10 @@ export default {
 </script>
 
 <style>
-.materials {
-  display: grid;
-  grid-template-columns: repeat(5, 20%);
+@media screen and (min-width: 960px) {
+  .materials {
+    display: grid;
+    grid-template-columns: repeat(5, 20%);
+  }
 }
 </style>

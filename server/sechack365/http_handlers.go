@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"path"
@@ -189,8 +188,6 @@ func (d *downloadsHandler) store(w http.ResponseWriter, r *http.Request) {
 		}
 		consolePortString := fmt.Sprintf("%d", l.ConsolePort)
 		dc, err := initDockerContainer(imagename.String(), consolePortString, ports...)
-		log.Println(ports)
-		log.Println(dc)
 		if err != nil {
 			respond(w, http.StatusInternalServerError)
 			return
