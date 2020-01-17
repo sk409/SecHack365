@@ -34,6 +34,7 @@
       :hide-default-header="hideDefaultHeader"
       item-key="ID"
       :items="items"
+      :items-per-page="20"
       no-data-text="データがありません"
       :search="search"
       :sort-by="sortKey"
