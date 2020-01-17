@@ -11,6 +11,7 @@ Vue.prototype.$routes = {
       downloaded: "/dashboard/materials/downloaded"
     }
   },
+  home: "/",
   lessons: {
     base: "/lessons",
     create: "/lessons/create",

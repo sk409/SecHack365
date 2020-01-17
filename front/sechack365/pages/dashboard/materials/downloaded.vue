@@ -24,6 +24,7 @@
 import ajax from "@/assets/js/ajax.js";
 import DataTable from "@/components/DataTable.vue";
 import { Url, urlMaterials, urlUsers } from "@/assets/js/url.js";
+import { defaultDateFormatter } from "@/assets/js/utils.js";
 export default {
   layout: "dashboard",
   components: {
@@ -82,12 +83,13 @@ export default {
               return;
             }
             response.data.forEach(material => {
+              material.CreatedAt = defaultDateFormatter(material.CreatedAt);
+              material.length = material.lessons.length;
               const user = users.find(user => user.ID === material.UserID);
               if (!user) {
                 return;
               }
               material.author = user.Name;
-              material.length = material.lessons.length;
             });
             this.materials = response.data;
           });

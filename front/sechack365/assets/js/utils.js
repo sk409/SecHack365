@@ -12,3 +12,13 @@ export function uuid() {
   }
   return chars.join("");
 }
+
+export function defaultDateFormatter(dateString) {
+  const date = new Date(dateString);
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  const d = date.getDate();
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
+  return `${year}/${month}/${d} ${hours}:${minutes}`;
+}

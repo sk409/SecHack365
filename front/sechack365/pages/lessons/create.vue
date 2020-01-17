@@ -41,7 +41,7 @@ export default {
       ],
       loading: false,
       os: "",
-      osList: ["centos:7"],
+      osList: ["centos:7", "ubuntu:16.04"],
       osRules: [v => !!v || "osを選択してください"],
       ports: "",
       thumbnail: null,

@@ -30,8 +30,8 @@
     <v-data-table
       :custom-filter="broadMatchFilter"
       :headers="headers"
-      hide-default-header
       hide-default-footer
+      :hide-default-header="hideDefaultHeader"
       item-key="ID"
       :items="items"
       no-data-text="データがありません"
@@ -40,6 +40,7 @@
       :sort-desc="sortDesc"
       @click:row="clickRow"
     >
+      <template v-slot:header.name="{header}">{{header.text}}</template>
       <template v-slot:item.action="{ item }">
         <v-btn icon @click="deleteItem(item)">
           <v-icon>mdi-delete</v-icon>
@@ -67,20 +68,16 @@ export default {
   },
   data() {
     return {
+      hideDefaultHeader: true,
       search: "",
-      //   sortButtons: [
-      //     { title: "タイトル(昇順)", key: "Title", desc: false },
-      //     { title: "タイトル(降順)", key: "Title", desc: true },
-      //     { title: "作成日(昇順)", key: "CreatedAt", desc: false },
-      //     { title: "作成日(降順)", key: "CreatedAt", desc: true }
-      //   ],
-      //   tableHeaders: [
-      //     { text: "タイトル", value: "Title" },
-      //     { text: "作成日", value: "CreatedAt" },
-      //     { text: "アクション", value: "action", sortable: false }
-      //   ],
       sortDesc: false,
       sortKey: null
+    };
+  },
+  created() {
+    this.hideDefaultHeader = window.innerWidth < 600;
+    onresize = () => {
+      this.hideDefaultHeader = window.innerWidth < 600;
     };
   },
   methods: {

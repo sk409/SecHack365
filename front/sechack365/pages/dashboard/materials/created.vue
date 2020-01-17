@@ -22,6 +22,7 @@
 import ajax from "@/assets/js/ajax.js";
 import DataTable from "@/components/DataTable.vue";
 import { Url, urlMaterials } from "@/assets/js/url.js";
+import { defaultDateFormatter } from "@/assets/js/utils.js";
 export default {
   layout: "dashboard",
   components: {
@@ -72,6 +73,7 @@ export default {
           return;
         }
         response.data.forEach(material => {
+          material.CreatedAt = defaultDateFormatter(material.CreatedAt);
           material.length = material.lessons.length;
         });
         this.materials = response.data;

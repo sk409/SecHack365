@@ -568,6 +568,7 @@ func (l *lessonsHandler) store(w http.ResponseWriter, r *http.Request) {
 	imagename, err := buildDockerImage(image, u.Name, lessonDirectoryPath)
 	if err != nil {
 		respond(w, http.StatusInternalServerError)
+		return
 	}
 	dc, err := initDockerContainer(imagename, consolePort, ports...)
 	if err != nil {

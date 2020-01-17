@@ -3,7 +3,7 @@
     <NavbarIde v-if="isIde" :lesson="lesson"></NavbarIde>
     <Navbar v-else :user="$user"></Navbar>
     <v-content class="white">
-      <div v-if="isLoading">LOADING</div>
+      <div v-if="isLoading"></div>
       <div v-else-if="isEditing" class="h-100">
         <nuxt></nuxt>
       </div>

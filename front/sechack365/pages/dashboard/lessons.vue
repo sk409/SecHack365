@@ -52,6 +52,7 @@
 import ajax from "@/assets/js/ajax.js";
 import DataTable from "@/components/DataTable.vue";
 import { Url, urlLessons } from "@/assets/js/url.js";
+import { defaultDateFormatter } from "@/assets/js/utils.js";
 export default {
   layout: "dashboard",
   components: {
@@ -81,6 +82,9 @@ export default {
         downloaded: 0
       };
       ajax.get(url.base, data).then(response => {
+        response.data.forEach(lesson => {
+          lesson.CreatedAt = defaultDateFormatter(lesson.CreatedAt);
+        });
         this.lessons = response.data;
       });
     });

@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 type dockerfile struct {
@@ -16,16 +17,26 @@ func newDockerfile(image string, username string) *dockerfile {
 	f := dockerfile{}
 	f.text += "FROM " + image + "\n"
 	f.text += "RUN useradd " + username + "\n"
-	f.text += `RUN yum -y install epel-release \
+	if strings.Contains(image, "centos") {
+		f.text += `RUN yum -y install epel-release \
     && rpm -Uvh http://rpms.famillecollet.com/enterprise/remi-release-7.rpm \
     && echo -e "[epel]\nname=Extra Packages for Enterprise Linux 7 - \$basearch\n#baseurl=http://download.fedoraproject.org/pub/epel/7/\$basearch\nmirrorlist=https://mirrors.fedoraproject.org/metalink?repo=epel-7&arch=\$basearch\nfailovermethod=priority\nenabled=0\ngpgcheck=1\ngpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-7" > etc/yum.repos.d/epel.repo \
     && yum -y install wget \
     && yum -y install vim \
     && yum -y install sudo \
-    && wget -qO- https://github.com/yudai/gotty/releases/download/v0.0.12/gotty_linux_amd64.tar.gz | tar zx -C /usr/local/bin/ \
-	&& yum -y remove wget \
 `
-	f.text += fmt.Sprintf("    && echo -e \"preferences{\\nbackground_color = \\\"rgb(255, 255, 255)\\\"\\nforeground_color = \\\"rgb(16, 16, 16)\\\"\\n}\" >> home/%s/.gotty \\\n", username)
+		f.text += "    && wget -qO- https://github.com/yudai/gotty/releases/download/v0.0.12/gotty_linux_amd64.tar.gz | tar zx -C /usr/local/bin/ \\\n"
+		f.text += fmt.Sprintf("    && echo -e \"preferences{\\nbackground_color = \\\"rgb(255, 255, 255)\\\"\\nforeground_color = \\\"rgb(16, 16, 16)\\\"\\n}\" >> home/%s/.gotty \\\n", username)
+	} else if strings.Contains(image, "ubuntu") {
+		f.text += `RUN apt-get update \
+	&& apt-get -y install wget \
+	&& apt-get -y install vim \
+	&& apt-get -y install sudo \
+`
+		f.text += fmt.Sprintf("    && mkdir /home/%s \\\n", username)
+		f.text += "    && wget -qO- https://github.com/yudai/gotty/releases/download/v0.0.12/gotty_linux_amd64.tar.gz | tar zx -C /usr/local/bin/ \\\n"
+		f.text += fmt.Sprintf("    && echo \"preferences{\\nbackground_color = \\\"rgb(255, 255, 255)\\\"\\nforeground_color = \\\"rgb(16, 16, 16)\\\"\\n}\" >> home/%s/.gotty \\\n", username)
+	}
 	f.text += fmt.Sprintf("    && echo \"%s ALL=NOPASSWD: ALL\" >> /etc/sudoers\n", username)
 	f.text += fmt.Sprintf("USER %s", username)
 	return &f
@@ -59,14 +70,6 @@ func (d *docker) commit(id, imagename string) error {
 		return err
 	}
 	return command.Wait()
-	// var e bytes.Buffer
-	// command.Stderr = &e
-	// _, err := command.Output()
-	// if err != nil {
-	// 	log.Println(e.String())
-	// 	return err
-	// }
-	// return nil
 }
 
 func (d *docker) sendFile(id, src, dst string) error {
