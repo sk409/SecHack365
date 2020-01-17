@@ -2,26 +2,15 @@
   <div>
     <v-container>
       <v-row>
-        <DataTableToolbar :sort="sortButtons" @search="setSearchMaterial" @sort="sortMaterials"></DataTableToolbar>
-      </v-row>
-      <v-row>
         <v-col>
-          <v-data-table
-            :custom-filter="broadMatchFilter"
-            :headers="tableHeaders"
-            item-key="ID"
-            :items="materials"
-            :search="searchMaterial"
-            :sort-by="sortKey"
-            :sort-desc="sortDesc"
-            @click:row="clickRow"
-          >
-            <template v-slot:item.action="{item}">
-              <v-btn icon @click="deleteMaterial(item)">
-                <v-icon>mdi-delete</v-icon>
-              </v-btn>
-            </template>
-          </v-data-table>
+          <v-card>
+            <DataTable
+              :headers="tableHeaders"
+              :items="materials"
+              :sort-list="sortList"
+              @click:row="clickRow"
+            ></DataTable>
+          </v-card>
         </v-col>
       </v-row>
       <v-btn color="accent" fab fixed right bottom :to="$routes.materials.create">
@@ -33,18 +22,17 @@
 
 <script>
 import ajax from "@/assets/js/ajax.js";
-import DataTableToolbar from "@/components/DataTableToolbar.vue";
+import DataTable from "@/components/DataTable.vue";
 import { Url, urlMaterials, urlUsers } from "@/assets/js/url.js";
 export default {
   layout: "dashboard",
   components: {
-    DataTableToolbar
+    DataTable
   },
   data() {
     return {
       materials: [],
-      searchMaterial: "",
-      sortButtons: [
+      sortList: [
         {
           title: "タイトル(昇順)",
           key: "Title",
@@ -66,8 +54,6 @@ export default {
           desc: true
         }
       ],
-      sortDesc: true,
-      sortKey: "CreatedAt",
       tableHeaders: [
         { text: "タイトル", value: "Title" },
         { text: "作成者", value: "author" },
@@ -108,25 +94,12 @@ export default {
         });
     });
   },
+  mounted() {
+    this.$nuxt.$emit("setTitle", "取得した教材一覧");
+  },
   methods: {
-    broadMatchFilter(value, serach, item) {
-      if (!value) {
-        return;
-      }
-      return typeof value === "string" && value.includes(this.searchMaterial);
-    },
     clickRow(material) {
       this.$router.push(this.$routes.materials.showDownloaded(material.ID));
-    },
-    deleteMaterial(material) {
-      console.log(material);
-    },
-    setSearchMaterial(searchMaterial) {
-      this.searchMaterial = searchMaterial;
-    },
-    sortMaterials(key, desc) {
-      this.sortKey = key;
-      this.sortDesc = desc;
     }
   }
 };

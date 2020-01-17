@@ -5,11 +5,8 @@
         <v-icon>mdi-menu</v-icon>
       </v-btn>
       <v-spacer></v-spacer>
-      <v-menu offset-y>
+      <!-- <v-menu offset-y>
         <template v-slot:activator="{ on }">
-          <!-- <v-avatar v-on="on">
-            <img src="@/static/v.png" alt="" />
-          </v-avatar>-->
           <v-btn v-on="on" icon>
             <v-icon>mdi-account</v-icon>
           </v-btn>
@@ -28,7 +25,7 @@
             </v-list-item-content>
           </v-list-item>
         </v-list-item-group>
-      </v-menu>
+      </v-menu>-->
     </v-app-bar>
     <v-navigation-drawer v-model="drawer" app class="grey lighten-4">
       <v-list>
@@ -49,30 +46,20 @@
 
 <script>
 export default {
-  props: {
-    user: {
-      required: true,
-      validator: user => typeof user === "object" || user === null
-    }
-  },
+  // props: {
+  //   user: {
+  //     required: true,
+  //     validator: user => typeof user === "object" || user === null
+  //   }
+  // },
   data() {
     return {
       drawer: false,
       navLinks: [
         {
-          title: "取得した教材",
-          icon: "mdi-book-outline",
-          route: "/materials/downloaded"
-        },
-        {
-          title: "作成した教材",
-          icon: "mdi-book-open-page-variant",
-          route: "/materials/created"
-        },
-        {
-          title: "作成したレッスン",
-          icon: "mdi-pencil",
-          route: "/lessons"
+          title: "ダッシュボード",
+          icon: "mdi-view-dashboard",
+          route: this.$routes.dashboard.materials.downloaded
         }
       ]
     };

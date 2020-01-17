@@ -29,11 +29,18 @@ func (a *authHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *authHandler) auth(w http.ResponseWriter, r *http.Request) {
-	_, err := r.Cookie(cookieNameSessionID)
-	response := map[string]bool{
-		"authenticated": err != nil,
+	response := func(authenticated bool) map[string]bool {
+		return map[string]bool{
+			"authenticated": authenticated,
+		}
 	}
-	respondJSON(w, http.StatusOK, response)
+	sessionID, err := r.Cookie(cookieNameSessionID)
+	if err != nil {
+		respondJSON(w, http.StatusOK, response(false))
+		return
+	}
+	_, err = sessionManager.Provider.Get(sessionID.Value)
+	respondJSON(w, http.StatusOK, response(err == nil))
 }
 
 type downloadsHandler struct {

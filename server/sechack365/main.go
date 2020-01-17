@@ -8,7 +8,7 @@ import (
 
 func main() {
 	headerContentType := []string{goconst.HTTP_HEADER_CONTENT_TYPE}
-	http.Handle("/auth", cors(&authHandler{}))
+	http.Handle("/auth", cors(allowCredentials(&authHandler{})))
 	http.Handle("/downloads", cors(&downloadsHandler{}))
 	http.Handle("/files", cors(allowMethods([]string{http.MethodGet, http.MethodPost, http.MethodPut}, preflight(&filesHandler{}))))
 	http.Handle("/folders", cors(&foldersHandler{}))

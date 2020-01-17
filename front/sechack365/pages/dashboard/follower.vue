@@ -33,6 +33,9 @@ export default {
         });
       });
     });
+  },
+  mounted() {
+    this.$nuxt.$emit("setTitle", "フォローされているユーザ一覧");
   }
 };
 </script>

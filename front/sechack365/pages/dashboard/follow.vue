@@ -66,6 +66,9 @@ export default {
       });
     });
   },
+  mounted() {
+    this.$nuxt.$emit("setTitle", "フォローしているユーザ一覧");
+  },
   methods: {
     inputKeyword() {
       this.delayedSearchUsers();

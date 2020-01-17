@@ -3,32 +3,58 @@
     <Navbar :user="$user"></Navbar>
     <v-content class="white">
       <div class="h-100">
-        <v-container fluid class="h-100">
-          <v-row class="h-100">
-            <v-col md="3" class="d-none d-md-block separator">
+        <div fluid class="h-100">
+          <div class="d-flex h-100">
+            <div class="d-none d-md-inline separator">
               <v-list>
-                <v-list-item-group>
-                  <v-list-item
-                    color="secondary"
-                    v-for="sidebarLink in sidebarLinks"
-                    :key="sidebarLink.title"
-                    :to="sidebarLink.route"
-                  >
-                    <v-list-item-icon>
-                      <v-icon>{{ sidebarLink.icon }}</v-icon>
-                    </v-list-item-icon>
-                    <v-list-item-content>
-                      <v-list-item-title>{{ sidebarLink.title }}</v-list-item-title>
-                    </v-list-item-content>
-                  </v-list-item>
-                </v-list-item-group>
+                <v-list-item
+                  color="secondary"
+                  v-for="sidebarLink in sidebarLinks"
+                  :key="sidebarLink.title"
+                  :to="sidebarLink.route"
+                >
+                  <v-list-item-icon>
+                    <v-icon>{{ sidebarLink.icon }}</v-icon>
+                  </v-list-item-icon>
+                  <v-list-item-content>
+                    <v-list-item-title>{{ sidebarLink.title }}</v-list-item-title>
+                  </v-list-item-content>
+                </v-list-item>
               </v-list>
-            </v-col>
-            <v-col sm="12" md="9">
+            </div>
+            <div class="w-100">
+              <div class="d-flex justify-space-between align-center">
+                <div class="pa-4 title">{{title}}</div>
+                <div class="d-inline d-md-none mr-3">
+                  <v-menu offset-y>
+                    <template v-slot:activator="{on}">
+                      <v-btn icon large v-on="on">
+                        <v-icon>mdi-dots-horizontal-circle-outline</v-icon>
+                      </v-btn>
+                    </template>
+                    <v-list>
+                      <v-list-item
+                        color="secondary"
+                        v-for="sidebarLink in sidebarLinks"
+                        :key="sidebarLink.title"
+                        :to="sidebarLink.route"
+                      >
+                        <v-list-item-icon>
+                          <v-icon>{{ sidebarLink.icon }}</v-icon>
+                        </v-list-item-icon>
+                        <v-list-item-content>
+                          <v-list-item-title>{{ sidebarLink.title }}</v-list-item-title>
+                        </v-list-item-content>
+                      </v-list-item>
+                    </v-list>
+                  </v-menu>
+                </div>
+              </div>
+              <v-divider></v-divider>
               <nuxt></nuxt>
-            </v-col>
-          </v-row>
-        </v-container>
+            </div>
+          </div>
+        </div>
       </div>
     </v-content>
   </v-app>
@@ -74,11 +100,18 @@ export default {
           icon: "mdi-account-badge-horizontal",
           route: this.$routes.dashboard.account
         }
-      ]
+      ],
+      title: ""
     };
   },
   created() {
     this.$fetchUser();
+    this.$nuxt.$on("setTitle", this.setTitle);
+  },
+  methods: {
+    setTitle(title) {
+      this.title = title || "";
+    }
   }
 };
 </script>

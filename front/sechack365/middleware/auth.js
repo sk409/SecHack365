@@ -1,8 +1,13 @@
 import axios from "axios";
 
-export default async function({ redirect }) {
+export default async function ({
+  redirect
+}) {
   const url = `${process.env.serverOrigin}/auth`;
-  const response = await axios.get(url);
+  const config = {
+    withCredentials: true
+  };
+  const response = await axios.get(url, config);
   if (response.data.authenticated === false) {
     redirect("/login");
   }

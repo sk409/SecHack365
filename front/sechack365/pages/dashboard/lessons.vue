@@ -1,36 +1,44 @@
 <template>
   <div>
-    <div class="pa-4">レッスン一覧</div>
-    <v-divider></v-divider>
     <v-container>
-      <v-row align="center">
-        <DataTableToolbar
-          :search="searchLesson"
-          :sort="sortButtons"
-          @search="setSearchLesson"
-          @sort="sortLessonTable"
-        ></DataTableToolbar>
-      </v-row>
       <v-row>
         <v-col>
-          <v-data-table
-            :custom-filter="broadMatchFilter"
-            :headers="tableHeaders"
-            item-key="ID"
-            :items="lessons"
-            :loading="lessonLoading"
-            loading-text="レッスンを取得しています"
-            :search="searchLesson"
-            :sort-by="tableSortKey"
-            :sort-desc="tableSortDesc"
-            @click:row="clickRow"
-          >
-            <template v-slot:item.action="{ item }">
-              <v-btn icon @click="deleteLesson(item)">
-                <v-icon>mdi-delete</v-icon>
+          <v-card>
+            <DataTable
+              :headers="tableHeaders"
+              :items="lessons"
+              :sort-list="sortList"
+              @click:row="clickRow"
+            ></DataTable>
+            <!-- <v-toolbar color="secondary" flat>
+              <v-text-field color="white" dark hide-details prepend-icon="mdi-magnify" single-line></v-text-field>
+              <v-spacer></v-spacer>
+              <v-btn color="white" icon>
+                <v-icon>mdi-sort</v-icon>
               </v-btn>
-            </template>
-          </v-data-table>
+            </v-toolbar>
+            <v-data-table
+              :custom-filter="broadMatchFilter"
+              :headers="tableHeaders"
+              hide-default-header
+              hide-default-footer
+              item-key="ID"
+              :items="lessons"
+              :loading="lessonLoading"
+              loading-text="レッスンを読み込んでいます"
+              no-data-text="作成したレッスンがありません"
+              :search="searchLesson"
+              :sort-by="tableSortKey"
+              :sort-desc="tableSortDesc"
+              @click:row="clickRow"
+            >
+              <template v-slot:item.action="{ item }">
+                <v-btn icon @click="deleteLesson(item)">
+                  <v-icon>mdi-delete</v-icon>
+                </v-btn>
+              </template>
+            </v-data-table>-->
+          </v-card>
         </v-col>
       </v-row>
     </v-container>
@@ -42,19 +50,17 @@
 
 <script>
 import ajax from "@/assets/js/ajax.js";
-import DataTableToolbar from "@/components/DataTableToolbar.vue";
+import DataTable from "@/components/DataTable.vue";
 import { Url, urlLessons } from "@/assets/js/url.js";
 export default {
   layout: "dashboard",
   components: {
-    DataTableToolbar
+    DataTable
   },
   data() {
     return {
-      lessonLoading: true,
       lessons: [],
-      searchLesson: "",
-      sortButtons: [
+      sortList: [
         { title: "タイトル(昇順)", key: "Title", desc: false },
         { title: "タイトル(降順)", key: "Title", desc: true },
         { title: "作成日(昇順)", key: "CreatedAt", desc: false },
@@ -64,9 +70,7 @@ export default {
         { text: "タイトル", value: "Title" },
         { text: "作成日", value: "CreatedAt" },
         { text: "アクション", value: "action", sortable: false }
-      ],
-      tableSortDesc: false,
-      tableSortKey: null
+      ]
     };
   },
   created() {
@@ -77,30 +81,16 @@ export default {
         downloaded: 0
       };
       ajax.get(url.base, data).then(response => {
-        this.lessonLoading = false;
         this.lessons = response.data;
       });
     });
   },
+  mounted() {
+    this.$nuxt.$emit("setTitle", "作成したレッスン一覧");
+  },
   methods: {
-    broadMatchFilter(value, search, item) {
-      if (!value) {
-        return;
-      }
-      return typeof value === "string" && value.includes(search);
-    },
     clickRow(lesson) {
-      this.$router.push(this.$routes.lessons.edit(lesson.ID));
-    },
-    deleteLesson(lesson) {
-      console.log(lesson);
-    },
-    setSearchLesson(searchLesson) {
-      this.searchLesson = searchLesson;
-    },
-    sortLessonTable(key, desc) {
-      this.tableSortKey = key;
-      this.tableSortDesc = desc;
+      this.$router.push(this.$routes.lessons.ide(lesson.ID));
     }
   }
 };

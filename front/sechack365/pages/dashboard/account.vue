@@ -32,6 +32,9 @@ export default {
   created() {
     this.$fetchUser();
   },
+  mounted() {
+    this.$nuxt.$emit("setTitle", "アカウント情報");
+  },
   methods: {
     showAuthForm() {}
   }
