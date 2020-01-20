@@ -8,6 +8,7 @@
             :items="materials"
             :sort-list="sortList"
             @click:row="clickRow"
+            @delete-item="showDialog"
           ></DataTable>
         </v-card>
       </v-col>
@@ -15,22 +16,36 @@
     <v-btn color="accent" fab fixed right bottom :to="$routes.materials.create">
       <v-icon>mdi-plus</v-icon>
     </v-btn>
+    <DialogDeletingItem :deleting="deleting" :visible.sync="dialog" @delete-item="deleteMaterial"></DialogDeletingItem>
+    <v-snackbar v-model="snackbar" :timeout="2000" top>
+      <span>{{notification}}</span>
+      <v-btn icon @click="snackbar = false">
+        <v-icon>mdi-close</v-icon>
+      </v-btn>
+    </v-snackbar>
   </v-container>
 </template>
 
 <script>
 import ajax from "@/assets/js/ajax.js";
 import DataTable from "@/components/DataTable.vue";
+import DialogDeletingItem from "@/components/DialogDeletingItem.vue";
 import { Url, urlMaterials } from "@/assets/js/url.js";
 import { defaultDateFormatter } from "@/assets/js/utils.js";
 export default {
   layout: "dashboard",
   components: {
-    DataTable
+    DataTable,
+    DialogDeletingItem
   },
   data() {
     return {
+      deleting: false,
+      dialog: false,
       materials: [],
+      notification: "",
+      selectedMaterial: null,
+      snackbar: false,
       sortList: [
         {
           title: "タイトル(昇順)",
@@ -84,8 +99,33 @@ export default {
     this.$nuxt.$emit("setTitle", "作成した教材一覧");
   },
   methods: {
+    deleteMaterial() {
+      if (!this.selectedMaterial) {
+        return;
+      }
+      this.deleting = true;
+      const url = new Url(urlMaterials);
+      ajax.delete(url.delete(this.selectedMaterial.ID)).then(response => {
+        this.deleting = false;
+        this.dialog = false;
+        this.snackbar = true;
+        if (response.status === 200) {
+          this.notification = this.selectedMaterial.Title + "を削除しました";
+          this.materials = this.materials.filter(
+            material => material.ID !== this.selectedMaterial.ID
+          );
+        } else {
+          this.notification = "削除に失敗しました";
+        }
+        this.selectedMaterial = null;
+      });
+    },
     clickRow(material) {
       this.$router.push(this.$routes.materials.showDownloaded(material.ID));
+    },
+    showDialog(material) {
+      this.selectedMaterial = material;
+      this.dialog = true;
     }
   }
 };

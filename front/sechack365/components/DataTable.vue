@@ -41,21 +41,11 @@
     >
       <template v-slot:header.name="{header}">{{header.text}}</template>
       <template v-slot:item.action="{ item }">
-        <v-btn icon @click.stop="showDeletingDialog(item)">
+        <v-btn icon @click.stop="$emit('delete-item', item)">
           <v-icon>mdi-delete</v-icon>
         </v-btn>
       </template>
     </v-data-table>
-    <v-dialog v-model="deletingDialog" width="400">
-      <v-card class="pa-3">
-        <v-card-title class>本当に削除しますか?</v-card-title>
-        <v-card-text>削除すると元に戻すことができません</v-card-text>
-        <v-card-actions>
-          <v-btn color="error" class="ml-auto mr-4" @click="deleteItem">削除</v-btn>
-          <v-btn color="primary" class="mr-auto" @click="deletingDialog=false">キャンセル</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
   </div>
 </template>
 
@@ -77,10 +67,8 @@ export default {
   },
   data() {
     return {
-      deletingDialog: false,
       hideDefaultHeader: true,
       search: "",
-      selectedItem: null,
       sortDesc: false,
       sortKey: null
     };
@@ -100,14 +88,6 @@ export default {
     },
     clickRow(item) {
       this.$emit("click:row", item);
-    },
-    deleteItem() {
-      this.$emit("delete-item", this.selectedItem);
-      this.deletingDialog = false;
-    },
-    showDeletingDialog(item) {
-      this.deletingDialog = true;
-      this.selectedItem = item;
     },
     sort(key, desc) {
       this.sortKey = key;

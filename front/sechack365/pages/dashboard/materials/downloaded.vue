@@ -9,28 +9,46 @@
               :items="materials"
               :sort-list="sortList"
               @click:row="clickRow"
-              @delete-item="deleteMaterial"
+              @delete-item="showDialog"
             ></DataTable>
           </v-card>
         </v-col>
       </v-row>
     </v-container>
+    <DialogDeletingItem
+      :deleting="deleting"
+      :visible.sync="dialogVisible"
+      @delete-item="deleteMaterial"
+    ></DialogDeletingItem>
+    <v-snackbar v-model="snackbar" :timeout="2000" top>
+      <span>{{notification}}</span>
+      <v-btn icon @click="snackbar = false">
+        <v-icon>mdi-close</v-icon>
+      </v-btn>
+    </v-snackbar>
   </div>
 </template>
 
 <script>
 import ajax from "@/assets/js/ajax.js";
 import DataTable from "@/components/DataTable.vue";
+import DialogDeletingItem from "@/components/DialogDeletingItem.vue";
 import { Url, urlMaterials, urlUsers } from "@/assets/js/url.js";
 import { defaultDateFormatter } from "@/assets/js/utils.js";
 export default {
   layout: "dashboard",
   components: {
-    DataTable
+    DataTable,
+    DialogDeletingItem
   },
   data() {
     return {
+      deleting: false,
+      dialogVisible: false,
       materials: [],
+      notification: "",
+      selectedMaterial: null,
+      snackbar: false,
       sortList: [
         {
           title: "タイトル(昇順)",
@@ -101,11 +119,30 @@ export default {
     clickRow(material) {
       this.$router.push(this.$routes.materials.showDownloaded(material.ID));
     },
-    deleteMaterial(material) {
+    deleteMaterial() {
+      if (!this.selectedMaterial) {
+        return;
+      }
+      this.deleting = true;
       const url = new Url(urlMaterials);
-      ajax.delete(url.delete(material.ID)).then(response => {
-        console.log(response);
+      ajax.delete(url.delete(this.selectedMaterial.ID)).then(response => {
+        this.deleting = false;
+        this.dialogVisible = false;
+        this.snackbar = true;
+        if (response.status === 200) {
+          this.notification = this.selectedMaterial.Title + "を削除しました";
+          this.materials = this.materials.filter(
+            material => material.ID !== this.selectedMaterial.ID
+          );
+        } else {
+          this.notification = "削除に失敗しました";
+        }
+        this.selectedMaterial = null;
       });
+    },
+    showDialog(material) {
+      this.selectedMaterial = material;
+      this.dialogVisible = true;
     }
   }
 };

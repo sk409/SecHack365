@@ -9,7 +9,7 @@
               :items="lessons"
               :sort-list="sortList"
               @click:row="clickRow"
-              @delete-item="deleteLesson"
+              @delete-item="showDeletingItemDialog"
             ></DataTable>
           </v-card>
         </v-col>
@@ -42,6 +42,11 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+    <DialogDeletingItem
+      :deleting="deleting"
+      :visible.sync="dialogDeletingItemVisible"
+      @delete-item="deleteLesson"
+    ></DialogDeletingItem>
     <v-btn color="accent" fab fixed right bottom @click="showModalOrTransition">
       <v-icon>mdi-plus</v-icon>
     </v-btn>
@@ -51,18 +56,23 @@
 <script>
 import ajax from "@/assets/js/ajax.js";
 import DataTable from "@/components/DataTable.vue";
+import DialogDeletingItem from "@/components/DialogDeletingItem.vue";
 import { Url, urlLessons } from "@/assets/js/url.js";
 import { defaultDateFormatter } from "@/assets/js/utils.js";
 export default {
   layout: "dashboard",
   components: {
-    DataTable
+    DataTable,
+    DialogDeletingItem
   },
   data() {
     return {
+      deleting: false,
+      dialogDeletingItemVisible: false,
       lessons: [],
       modeDialog: false,
       notification: "",
+      selectedLesson: null,
       snackbar: false,
       sortList: [
         { title: "タイトル(昇順)", key: "Title", desc: false },
@@ -99,17 +109,28 @@ export default {
     clickRow(lesson) {
       this.$router.push(this.$routes.lessons.ide(lesson.ID));
     },
-    deleteLesson(lesson) {
+    deleteLesson() {
       const url = new Url(urlLessons);
-      ajax.delete(url.delete(lesson.ID)).then(response => {
+      this.deleting = true;
+      ajax.delete(url.delete(this.selectedLesson.ID)).then(response => {
+        this.deleting = false;
+        this.dialogDeletingItemVisible = false;
         this.snackbar = true;
-        if (response.status !== 200) {
-          this.notification = lesson.Title + "の削除に失敗しました";
-          return;
+        if (response.status === 200) {
+          this.notification = this.selectedLesson.Title + "を削除しました";
+          this.lessons = this.lessons.filter(
+            l => l.ID !== this.selectedLesson.ID
+          );
+        } else {
+          this.notification =
+            this.selectedLesson.Title + "の削除に失敗しました";
         }
-        this.notification = lesson.Title + "を削除しました";
-        this.lessons = this.lessons.filter(l => l.ID !== lesson.ID);
+        this.selectedLesson = null;
       });
+    },
+    showDeletingItemDialog(lesson) {
+      this.dialogDeletingItemVisible = true;
+      this.selectedLesson = lesson;
     },
     showModalOrTransition() {
       if (this.lessons.length !== 0) {

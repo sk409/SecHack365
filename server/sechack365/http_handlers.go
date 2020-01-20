@@ -803,11 +803,6 @@ func (m *materialsHandler) store(w http.ResponseWriter, r *http.Request) {
 // }
 
 func (m *materialsHandler) destroy(w http.ResponseWriter, r *http.Request, id string) {
-	// userID := r.URL.Query().Get("userID")
-	// if !notEmptyAll(userID) {
-	// 	respond(w, http.StatusBadRequest)
-	// 	return
-	// }
 	mtl := material{}
 	db.Where("id = ?", id).First(&mtl)
 	if mtl.ID == 0 {
@@ -828,12 +823,6 @@ func (m *materialsHandler) destroy(w http.ResponseWriter, r *http.Request, id st
 				return
 			}
 		}
-		// db.Delete(download{}, "user_id = ? AND material_id = ?", userID, id)
-		// if db.Error != nil {
-		// 	log.Println(db.Error)
-		// 	respond(w, http.StatusInternalServerError)
-		// 	return
-		// }
 	}
 	db.Unscoped().Delete(material{}, "id = ?", id)
 	if db.Error != nil {
