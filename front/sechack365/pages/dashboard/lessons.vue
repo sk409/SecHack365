@@ -9,40 +9,40 @@
               :items="lessons"
               :sort-list="sortList"
               @click:row="clickRow"
+              @delete-item="deleteLesson"
             ></DataTable>
-            <!-- <v-toolbar color="secondary" flat>
-              <v-text-field color="white" dark hide-details prepend-icon="mdi-magnify" single-line></v-text-field>
-              <v-spacer></v-spacer>
-              <v-btn color="white" icon>
-                <v-icon>mdi-sort</v-icon>
-              </v-btn>
-            </v-toolbar>
-            <v-data-table
-              :custom-filter="broadMatchFilter"
-              :headers="tableHeaders"
-              hide-default-header
-              hide-default-footer
-              item-key="ID"
-              :items="lessons"
-              :loading="lessonLoading"
-              loading-text="レッスンを読み込んでいます"
-              no-data-text="作成したレッスンがありません"
-              :search="searchLesson"
-              :sort-by="tableSortKey"
-              :sort-desc="tableSortDesc"
-              @click:row="clickRow"
-            >
-              <template v-slot:item.action="{ item }">
-                <v-btn icon @click="deleteLesson(item)">
-                  <v-icon>mdi-delete</v-icon>
-                </v-btn>
-              </template>
-            </v-data-table>-->
           </v-card>
         </v-col>
       </v-row>
     </v-container>
-    <v-btn color="accent" fab fixed right bottom @click="$router.push($routes.lessons.create)">
+    <v-snackbar v-model="snackbar" top>
+      <span>{{notification}}</span>
+      <v-btn icon @click="snackbar = false">
+        <v-icon>mdi-close</v-icon>
+      </v-btn>
+    </v-snackbar>
+    <v-dialog v-model="modeDialog" width="500">
+      <v-card class="pa-3">
+        <v-card-title>レッスン作成方法の選択</v-card-title>
+        <v-card-text>
+          <div>新規作成する場合には新規作成を選択してください。</div>
+          <div>既存のレッスンを継承する場合には継承を選択してください。</div>
+        </v-card-text>
+        <v-card-actions>
+          <v-btn
+            color="primary"
+            class="ml-auto mr-4"
+            @click="$router.push($routes.lessons.create.inheritance)"
+          >継承</v-btn>
+          <v-btn
+            color="primary"
+            class="mr-auto"
+            @click="$router.push($routes.lessons.create.new)"
+          >新規作成</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+    <v-btn color="accent" fab fixed right bottom @click="showModalOrTransition">
       <v-icon>mdi-plus</v-icon>
     </v-btn>
   </div>
@@ -61,6 +61,9 @@ export default {
   data() {
     return {
       lessons: [],
+      modeDialog: false,
+      notification: "",
+      snackbar: false,
       sortList: [
         { title: "タイトル(昇順)", key: "Title", desc: false },
         { title: "タイトル(降順)", key: "Title", desc: true },
@@ -95,6 +98,25 @@ export default {
   methods: {
     clickRow(lesson) {
       this.$router.push(this.$routes.lessons.ide(lesson.ID));
+    },
+    deleteLesson(lesson) {
+      const url = new Url(urlLessons);
+      ajax.delete(url.delete(lesson.ID)).then(response => {
+        this.snackbar = true;
+        if (response.status !== 200) {
+          this.notification = lesson.Title + "の削除に失敗しました";
+          return;
+        }
+        this.notification = lesson.Title + "を削除しました";
+        this.lessons = this.lessons.filter(l => l.ID !== lesson.ID);
+      });
+    },
+    showModalOrTransition() {
+      if (this.lessons.length !== 0) {
+        this.modeDialog = true;
+      } else {
+        this.$router.push(this.$routes.lessons.create.new);
+      }
     }
   }
 };

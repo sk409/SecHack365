@@ -90,41 +90,32 @@ func (d *downloadsHandler) store(w http.ResponseWriter, r *http.Request) {
 		respond(w, http.StatusBadRequest)
 		return
 	}
-	m := material{}
-	db.Where("id = ?", materialID).First(&m)
-	if m.ID == 0 {
+	mtl := material{}
+	db.Where("id = ?", materialID).First(&mtl)
+	if mtl.ID == 0 {
 		respond(w, http.StatusBadRequest)
 		return
 	}
-	download := download{
-		UserID:     uint(userIDUint),
-		MaterialID: uint(materialIDUint),
-	}
-	db.Save(&download)
-	if db.Error != nil {
-		respond(w, http.StatusInternalServerError)
-		return
-	}
 	mc := material{
-		Title:         m.Title,
-		Description:   m.Description,
+		Title:         mtl.Title,
+		Description:   mtl.Description,
 		ThumbnailPath: strings.TrimPrefix(pathNoimage, cwd),
 		Downloaded:    true,
 		UserID:        uint(userIDUint),
-		AuthorUserID:  &m.UserID,
+		AuthorUserID:  &mtl.UserID,
 	}
 	db.Save(&mc)
 	if db.Error != nil {
 		respond(w, http.StatusInternalServerError)
 		return
 	}
-	materialCloneThumbnailPath := filepath.Join(pathPublicImagesMaterials, fmt.Sprintf("%d", mc.ID), filepath.Base(m.ThumbnailPath))
+	materialCloneThumbnailPath := filepath.Join(pathPublicImagesMaterials, fmt.Sprintf("%d", mc.ID), filepath.Base(mtl.ThumbnailPath))
 	err = os.MkdirAll(filepath.Dir(materialCloneThumbnailPath), 0755)
 	if err != nil {
 		respond(w, http.StatusInternalServerError)
 		return
 	}
-	err = gofile.CopyFileToFile(filepath.Join(cwd, m.ThumbnailPath), materialCloneThumbnailPath)
+	err = gofile.CopyFileToFile(filepath.Join(cwd, mtl.ThumbnailPath), materialCloneThumbnailPath)
 	if err != nil {
 		respond(w, http.StatusInternalServerError)
 		return
@@ -132,7 +123,7 @@ func (d *downloadsHandler) store(w http.ResponseWriter, r *http.Request) {
 	mc.ThumbnailPath = strings.TrimPrefix(materialCloneThumbnailPath, cwd)
 	db.Save(&mc)
 	lessonMaterials := []lessonMaterial{}
-	db.Where("material_id = ?", m.ID).Find(&lessonMaterials)
+	db.Where("material_id = ?", mtl.ID).Find(&lessonMaterials)
 	lessonIDs := make([]uint, len(lessonMaterials))
 	for index, lessonMaterial := range lessonMaterials {
 		lessonIDs[index] = lessonMaterial.LessonID
@@ -221,6 +212,16 @@ func (d *downloadsHandler) store(w http.ResponseWriter, r *http.Request) {
 			respond(w, http.StatusInternalServerError)
 			return
 		}
+	}
+	download := download{
+		UserID:             uint(userIDUint),
+		OriginalMaterialID: uint(materialIDUint),
+		CopiedMaterialID:   mc.ID,
+	}
+	db.Save(&download)
+	if db.Error != nil {
+		respond(w, http.StatusInternalServerError)
+		return
 	}
 	respondJSON(w, http.StatusOK, download)
 }
@@ -423,8 +424,8 @@ func (f *followsHandler) store(w http.ResponseWriter, r *http.Request) {
 }
 
 func (f *followsHandler) destory(w http.ResponseWriter, r *http.Request, id string) {
-	err := destory(id, follow{}, false)
-	if err != nil {
+	db.Delete(follow{}, "id = ?", id)
+	if db.Error != nil {
 		respond(w, http.StatusInternalServerError)
 		return
 	}
@@ -488,6 +489,12 @@ func (l *lessonsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			l.update(w, r, id)
 			return
 		}
+	case http.MethodDelete:
+		id, ok := routeWithID(r, base)
+		if ok {
+			l.destroy(w, r, id)
+			return
+		}
 	}
 	respond(w, http.StatusNotFound)
 }
@@ -507,20 +514,24 @@ func (l *lessonsHandler) store(w http.ResponseWriter, r *http.Request) {
 	titles := r.MultipartForm.Value["title"]
 	descriptions := r.MultipartForm.Value["description"]
 	images := r.MultipartForm.Value["os"]
+	superLessons := r.MultipartForm.Value["superLesson"]
 	consolePorts := r.MultipartForm.Value["consolePort"]
 	userIDs := r.MultipartForm.Value["userID"]
-	if !notEmptyAll(titles, descriptions, images, consolePorts, userIDs) {
+	if !notEmptyAll(titles, descriptions, consolePorts, userIDs) {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	if emptyAll(images, superLessons) {
 		respond(w, http.StatusBadRequest)
 		return
 	}
 	title := titles[0]
 	description := descriptions[0]
-	image := images[0]
 	consolePort := consolePorts[0]
 	userID := userIDs[0]
 	ports := r.MultipartForm.Value["ports[]"]
 	ports = append(ports, consolePort)
-	if !notEmptyAll(title, description, image, consolePort, userID) {
+	if !notEmptyAll(title, description, consolePort, userID) {
 		respond(w, http.StatusBadRequest)
 		return
 	}
@@ -566,7 +577,6 @@ func (l *lessonsHandler) store(w http.ResponseWriter, r *http.Request) {
 		lsn.ThumbnailPath = strings.TrimPrefix(path, cwd)
 	}
 	imagename := ""
-	superLessons := r.MultipartForm.Value["superLesson"]
 	if len(superLessons) == 1 {
 		superLesson := lesson{}
 		db.Where("title = ? AND user_id = ?", superLessons[0], userID).First(&superLesson)
@@ -587,6 +597,7 @@ func (l *lessonsHandler) store(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
+		image := images[0]
 		imagename, err = buildDockerImage(image, u.Name, lessonDirectoryPath)
 		if err != nil {
 			respond(w, http.StatusInternalServerError)
@@ -622,8 +633,22 @@ func (l *lessonsHandler) store(w http.ResponseWriter, r *http.Request) {
 }
 
 func (l *lessonsHandler) update(w http.ResponseWriter, r *http.Request, id string) {
+	lsn := lesson{}
+	db.Where("id = ?", id).First(&lsn)
+	if lsn.ID == 0 {
+		respond(w, http.StatusBadRequest)
+		return
+	}
 	update(r, id, lesson{})
 	if db.Error != nil {
+		respond(w, http.StatusInternalServerError)
+		return
+	}
+}
+
+func (l *lessonsHandler) destroy(w http.ResponseWriter, r *http.Request, id string) {
+	err := deleteLesson(id)
+	if err != nil {
 		respond(w, http.StatusInternalServerError)
 		return
 	}
@@ -665,14 +690,22 @@ type materialsHandler struct {
 }
 
 func (m *materialsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	base := "/materials"
 	switch r.Method {
 	case http.MethodGet:
 		m.fetch(w, r)
+		return
 	case http.MethodPost:
 		m.store(w, r)
-	default:
-		respond(w, http.StatusNotFound)
+		return
+	case http.MethodDelete:
+		id, ok := routeWithID(r, base)
+		if ok {
+			m.destroy(w, r, id)
+			return
+		}
 	}
+	respond(w, http.StatusNotFound)
 }
 
 func (m *materialsHandler) fetch(w http.ResponseWriter, r *http.Request) {
@@ -746,6 +779,67 @@ func (m *materialsHandler) store(w http.ResponseWriter, r *http.Request) {
 		db.Save(&lm)
 	}
 	respondJSON(w, http.StatusOK, material)
+}
+
+// func (m *materialsHandler) download(w http.ResponseWriter, r *http.Request) {
+// 	userID := r.PostFormValue("userID")
+// 	materialID := r.PostFormValue("materialID")
+// 	if !notEmptyAll(userID, materialID) {
+// 		respond(w, http.StatusBadRequest)
+// 		return
+// 	}
+// 	userIDUint, err := strconv.ParseUint(userID, 10, 64)
+// 	if err != nil {
+// 		respond(w, http.StatusBadRequest)
+// 		return
+// 	}
+// 	u := user{}
+// 	db.Where("id = ?", userID).First(&u)
+// 	if u.ID == 0 {
+// 		respond(w, http.StatusBadRequest)
+// 		return
+// 	}
+
+// }
+
+func (m *materialsHandler) destroy(w http.ResponseWriter, r *http.Request, id string) {
+	// userID := r.URL.Query().Get("userID")
+	// if !notEmptyAll(userID) {
+	// 	respond(w, http.StatusBadRequest)
+	// 	return
+	// }
+	mtl := material{}
+	db.Where("id = ?", id).First(&mtl)
+	if mtl.ID == 0 {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	if mtl.Downloaded {
+		lessonMaterials := []lessonMaterial{}
+		db.Where("material_id = ?", id).Find(&lessonMaterials)
+		if db.Error != nil {
+			respond(w, http.StatusInternalServerError)
+			return
+		}
+		for _, lm := range lessonMaterials {
+			err := deleteLesson(fmt.Sprintf("%d", lm.LessonID))
+			if err != nil {
+				respond(w, http.StatusInternalServerError)
+				return
+			}
+		}
+		// db.Delete(download{}, "user_id = ? AND material_id = ?", userID, id)
+		// if db.Error != nil {
+		// 	log.Println(db.Error)
+		// 	respond(w, http.StatusInternalServerError)
+		// 	return
+		// }
+	}
+	db.Unscoped().Delete(material{}, "id = ?", id)
+	if db.Error != nil {
+		respond(w, http.StatusInternalServerError)
+		return
+	}
 }
 
 type registerHandler struct {

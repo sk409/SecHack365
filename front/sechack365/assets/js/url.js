@@ -1,28 +1,5 @@
-// const makeUrl = (path) => {
-//   return process.env.serverOrigin + "/" + path;
-// }
-
-// export const makeQuery = (params) => {
-//   let query = "?";
-//   for (const key in params) {
-//     const value = params[key];
-//     query += `${key}=${value}&`
-//   }
-//   return query;
-// }
-
-// export const urlLogin = {
-//   base: makeUrl("login")
-// }
-
-// export const urlRegister = {
-//   base: makeUrl("register")
-// }
-
-// export const urlUsers
-
 const routeWithID = (base, id) => {
-  const url = base;
+  let url = base;
   if (!url.endsWith("/")) {
     url += "/";
   }

@@ -38,7 +38,9 @@ class Ajax {
   }
 
   delete(url, data, config) {
-    return Axios.delete(url, makeData(data, config), config);
+    return Axios.delete(url, {
+      data: makeData(data, config)
+    }, config);
   }
 }
 

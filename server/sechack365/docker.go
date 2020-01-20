@@ -101,8 +101,18 @@ func (d *docker) inspect(id string, args ...string) ([]byte, error) {
 	return command.Output()
 }
 
+func (d *docker) kill(id string) ([]byte, error) {
+	command := exec.Command("docker", "container", "kill", id)
+	return command.Output()
+}
+
 func (d *docker) port(id string) ([]byte, error) {
 	command := exec.Command("docker", "container", "port", id)
+	return command.Output()
+}
+
+func (d *docker) removeContainer(id string) ([]byte, error) {
+	command := exec.Command("docker", "container", "rm", id)
 	return command.Output()
 }
 

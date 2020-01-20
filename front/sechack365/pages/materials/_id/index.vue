@@ -41,7 +41,7 @@
     >
       <v-icon>mdi-download</v-icon>
     </v-btn>
-    <v-btn v-else-if="downloaded === true" color="primary" fixed right bottom disabled>ダウンロード済み</v-btn>
+    <v-btn v-else-if="downloaded === true" color="primary" fixed right bottom disabled>取得済み</v-btn>
   </v-container>
 </template>
 
@@ -108,6 +108,9 @@ export default {
 </script>
 
 <style>
+/*
+:TODO
+*/
 @media screen and (min-width: 960px) {
   .lesson-card-container {
     display: grid;

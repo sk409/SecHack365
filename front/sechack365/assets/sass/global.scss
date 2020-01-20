@@ -27,3 +27,18 @@
 .thumbnail-top {
   object-position: 50% 0;
 }
+
+.d-grid {
+  display: grid;
+}
+
+@media screen and (min-width: 960px) {
+
+  .d-md-grid {
+    display: grid;
+  }
+
+  .columns-md-5 {
+    grid-template-columns: repeat(3, 33%);
+  }
+}

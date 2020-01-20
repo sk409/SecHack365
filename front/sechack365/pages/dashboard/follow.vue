@@ -1,30 +1,30 @@
 <template>
   <div>
     <UserList :users="users"></UserList>
-    <v-dialog v-model="dialog">
-      <div class="mx-auto pa-3 white">
-        <v-subheader>ユーザを検索</v-subheader>
-        <v-text-field
-          v-model="searchKeyword"
-          prepend-icon="mdi-magnify"
-          label="キーワード"
-          @input="inputKeyword"
-        ></v-text-field>
-        <div class="searched-users-container">
-          <v-card
-            v-for="user in searchedUsers"
-            :key="user.ID"
-            class="ma-2 searched-user-card"
-            @click="$router.push($routes.users.show(user.ID))"
-          >
-            <v-avatar size="128" class="mx-auto d-block">
-              <v-img :src="profileImageURL(user)"></v-img>
-            </v-avatar>
-            <v-divider></v-divider>
-            <v-card-title>{{user.Name}}</v-card-title>
-          </v-card>
-        </div>
-      </div>
+    <v-dialog v-model="dialog" width="600">
+      <v-card class="pa-3">
+        <v-card-title>ユーザを検索</v-card-title>
+        <v-card-text>
+          <v-text-field
+            v-model="searchKeyword"
+            prepend-icon="mdi-magnify"
+            label="キーワード"
+            @input="inputKeyword"
+          ></v-text-field>
+          <div class="d-md-grid columns-md-5">
+            <v-card
+              v-for="user in searchedUsers"
+              :key="user.ID"
+              class="ma-3"
+              @click="$router.push($routes.users.show(user.ID))"
+            >
+              <img :src="profileImageURL(user)" class="thumbnail-1 thumbnail-top" />
+              <v-divider></v-divider>
+              <v-card-title>{{user.Name}}</v-card-title>
+            </v-card>
+          </div>
+        </v-card-text>
+      </v-card>
     </v-dialog>
     <v-btn color="accent" fab fixed right bottom @click="dialog = true">
       <v-icon>mdi-plus</v-icon>
@@ -92,9 +92,5 @@ export default {
 <style>
 .searched-user-card {
   cursor: pointer;
-}
-.searched-users-container {
-  display: grid;
-  grid-template-columns: repeat(5, 20%);
 }
 </style>

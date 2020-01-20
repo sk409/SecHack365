@@ -13,9 +13,13 @@ type dockerContainer struct {
 }
 
 type download struct {
-	gorm.Model
-	UserID     uint
-	MaterialID uint
+	ID                 uint `gorm:"primary_key"`
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
+	DeletedAt          *time.Time `sql:"index"`
+	UserID             uint       `gorm:"not null"`
+	OriginalMaterialID uint       `gorm:"not null"`
+	CopiedMaterialID   uint       `gorm:"not null"`
 }
 
 type file struct {
@@ -34,9 +38,12 @@ type folder struct {
 }
 
 type follow struct {
-	gorm.Model
-	FollowingUserID uint `gorm:"not null"`
-	FollowedUserID  uint `gorm:"not null"`
+	ID              uint `gorm:"primary_key"`
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	DeletedAt       *time.Time `sql:"index"`
+	FollowingUserID uint       `gorm:"not null"`
+	FollowedUserID  uint       `gorm:"not null"`
 }
 
 type user struct {

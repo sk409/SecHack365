@@ -14,7 +14,10 @@ Vue.prototype.$routes = {
   home: "/",
   lessons: {
     base: "/lessons",
-    create: "/lessons/create",
+    create: {
+      inheritance: "/lessons/create/inheritance",
+      new: "/lessons/create/new",
+    },
     edit(id) {
       return "/lessons/" + id + "/edit";
     },

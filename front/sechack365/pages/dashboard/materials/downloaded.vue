@@ -9,13 +9,11 @@
               :items="materials"
               :sort-list="sortList"
               @click:row="clickRow"
+              @delete-item="deleteMaterial"
             ></DataTable>
           </v-card>
         </v-col>
       </v-row>
-      <v-btn color="accent" fab fixed right bottom :to="$routes.materials.create">
-        <v-icon>mdi-plus</v-icon>
-      </v-btn>
     </v-container>
   </div>
 </template>
@@ -102,6 +100,12 @@ export default {
   methods: {
     clickRow(material) {
       this.$router.push(this.$routes.materials.showDownloaded(material.ID));
+    },
+    deleteMaterial(material) {
+      const url = new Url(urlMaterials);
+      ajax.delete(url.delete(material.ID)).then(response => {
+        console.log(response);
+      });
     }
   }
 };

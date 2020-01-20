@@ -17,15 +17,6 @@ import (
 	"github.com/sk409/goconst"
 )
 
-func destory(id string, model interface{}, softDelete bool) error {
-	if softDelete {
-		db.Where("id = ?", id).Delete(model)
-	} else {
-		db.Where("id = ?", id).Unscoped().Delete(model)
-	}
-	return db.Error
-}
-
 func fetch(r *http.Request, model interface{}) error {
 	query := make(map[string]interface{})
 	for key, values := range r.URL.Query() {

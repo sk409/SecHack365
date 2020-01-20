@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/sha512"
+	"net/http"
 	"path/filepath"
 	"reflect"
 	"strconv"
@@ -11,9 +12,21 @@ import (
 	"github.com/sk409/gotype"
 )
 
-func encrypt(data []byte) []byte {
-	hash := sha512.Sum512(data)
-	return hash[:]
+func authUser(r *http.Request) (*user, error) {
+	cookie, err := r.Cookie(cookieNameSessionID)
+	if err != nil {
+		return nil, err
+	}
+	session, err := sessionManager.Provider.Get(cookie.Value)
+	if err != nil {
+		return nil, err
+	}
+	u := user{}
+	err = session.Object(sessionKeyUser, &u)
+	if err != nil {
+		return nil, err
+	}
+	return &u, nil
 }
 
 func buildDockerImage(image, username, directoryPath string) (string, error) {
@@ -33,6 +46,49 @@ func buildDockerImage(image, username, directoryPath string) (string, error) {
 		return "", err
 	}
 	return imagename.String(), nil
+}
+
+func deleteLesson(id string) error {
+	lsn := lesson{}
+	db.Where("id = ?", id).First(&lsn)
+	if lsn.ID == 0 {
+		return errBadRequest
+	}
+	db.Unscoped().Delete(lesson{}, "id = ?", id)
+	if db.Error != nil {
+		return db.Error
+	}
+	d := docker{}
+	_, err := d.kill(lsn.DockerContainerID)
+	if err != nil {
+		return err
+	}
+	_, err = d.removeContainer(lsn.DockerContainerID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func emptyAll(values ...interface{}) bool {
+	for _, value := range values {
+		if gotype.IsString(value) {
+			if value.(string) != "" {
+				return false
+			}
+		} else if gotype.IsSlice(value) {
+			rv := reflect.ValueOf(value)
+			if rv.Len() != 0 {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func encrypt(data []byte) []byte {
+	hash := sha512.Sum512(data)
+	return hash[:]
 }
 
 func initDockerContainer(imagename, consolePort string, ports ...string) (*dockerContainer, error) {
