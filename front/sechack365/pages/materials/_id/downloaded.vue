@@ -29,9 +29,6 @@
               <v-col cols="2" offset="2">
                 <v-btn color="secondary" @click="$router.push($routes.lessons.ide(lesson.ID))">学習</v-btn>
               </v-col>
-              <!-- <v-col cols="2" offset="1">
-                <v-checkbox></v-checkbox>
-              </v-col>-->
             </v-row>
             <v-divider></v-divider>
           </div>

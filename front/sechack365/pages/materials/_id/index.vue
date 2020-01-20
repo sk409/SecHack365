@@ -2,7 +2,11 @@
   <v-container>
     <v-row>
       <v-col cols="3">
-        <v-img v-if="material" :src="$serverUrl(material.ThumbnailPath)"></v-img>
+        <img
+          v-if="material"
+          :src="$serverUrl(material.ThumbnailPath)"
+          class="thumbnail-2 thumbnail-top"
+        />
       </v-col>
       <v-col cols="9">
         <div class="title">{{material ? material.Title : ""}}</div>
@@ -13,7 +17,7 @@
     <div class="subtitle-1 my-2">この教材に含まれているレッスン一覧</div>
     <div v-if="material" class="lesson-card-container">
       <v-card v-for="lesson in material.lessons" :key="lesson.ID" class="ma-4">
-        <v-img class="mx-auto" width="200" v-if="lesson" :src="$serverUrl(lesson.ThumbnailPath)"></v-img>
+        <img v-if="lesson" contain :src="$serverUrl(lesson.ThumbnailPath)" class="thumbnail-2" />
         <v-divider></v-divider>
         <v-card-title>{{lesson.Title | truncate(12)}}</v-card-title>
         <v-card-text>{{lesson.Description | truncate(30)}}</v-card-text>

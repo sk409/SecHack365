@@ -14,7 +14,7 @@ func init() {
 		panic(err)
 	}
 	db.AutoMigrate(user{})
-	db.AutoMigrate(lesson{}).AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE")
+	db.AutoMigrate(lesson{}).AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE") //.AddUniqueIndex("title_user_id_unique", "title", "user_id")
 	db.AutoMigrate(lessonPort{}).AddForeignKey("lesson_id", "lessons(id)", "CASCADE", "CASCADE")
 	db.AutoMigrate(material{}).AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE").AddForeignKey("author_user_id", "users(id)", "NO ACTION", "NO ACTION")
 	db.AutoMigrate(lessonMaterial{}).AddForeignKey("lesson_id", "lessons(id)", "CASCADE", "CASCADE").AddForeignKey("material_id", "materials(id)", "CASCADE", "CASCADE")

@@ -5,3 +5,25 @@
 .h-100 {
   height: 100%;
 }
+
+.thumbnail-1 {
+  object-fit: contain;
+  width: 100%;
+  height: 64px;
+}
+
+.thumbnail-2 {
+  object-fit: contain;
+  width: 100%;
+  height: 128px;
+}
+
+.thumbnail-3 {
+  object-fit: contain;
+  width: 100%;
+  height: 256px;
+}
+
+.thumbnail-top {
+  object-position: 50% 0;
+}

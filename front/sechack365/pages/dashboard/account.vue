@@ -1,16 +1,16 @@
 <template>
   <v-container fluid>
-    <div class="d-flex">
-      <div class="profile-image-container">
-        <img :src="profileImagePath" class="profile-image" />
-      </div>
-      <div>
+    <v-row>
+      <v-col cols="3">
+        <img :src="profileImagePath" class="thumbnail-2" />
+      </v-col>
+      <v-col cols="9">
         <div>
           <span class="headline">{{$user ? $user.Name : ""}}</span>
         </div>
         <div class="mt-3 body">バイオテキスト</div>
-      </div>
-    </div>
+      </v-col>
+    </v-row>
     <v-divider class="my-3"></v-divider>
     <div class="text-center">
       <v-btn color="secondary" @click="logout">ログアウト</v-btn>
@@ -51,13 +51,3 @@ export default {
   }
 };
 </script>
-
-<style>
-.profile-image-container {
-  width: 200px;
-}
-.profile-image {
-  width: 100%;
-  object-fit: contain;
-}
-</style>

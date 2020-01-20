@@ -72,15 +72,6 @@ func (d *docker) commit(id, imagename string) error {
 	return command.Wait()
 }
 
-func (d *docker) sendFile(id, src, dst string) error {
-	command := exec.Command("docker", "cp", src, id+":"+dst)
-	err := command.Start()
-	if err != nil {
-		return err
-	}
-	return command.Wait()
-}
-
 func (d *docker) exec(id string, args []string, command ...string) ([]byte, error) {
 	args = append([]string{"container", "exec"}, args...)
 	args = append(args, id)
@@ -93,6 +84,21 @@ func (d *docker) exec(id string, args []string, command ...string) ([]byte, erro
 		log.Println(stderr.String())
 	}
 	return output, err
+}
+
+func (d *docker) image(id string) ([]byte, error) {
+	b, err := d.inspect(id, "--format", "{{.Image}}")
+	if err != nil {
+		return nil, err
+	}
+	c := bytes.Split(b, []byte(":"))
+	return c[1], nil
+}
+
+func (d *docker) inspect(id string, args ...string) ([]byte, error) {
+	args = append([]string{"container", "inspect", id}, args...)
+	command := exec.Command("docker", args...)
+	return command.Output()
 }
 
 func (d *docker) port(id string) ([]byte, error) {
@@ -108,5 +114,29 @@ func (d *docker) runContainer(containername, imagename string, ports ...string) 
 	}
 	args = append(args, imagename)
 	command := exec.Command("docker", args...)
+	command.Stderr = os.Stderr
 	return command.Output()
+	// var e = bytes.Buffer{}
+	// command.Stderr = &e
+	// err := command.Start()
+	// if err != nil {
+	// 	log.Println(e.String())
+	// 	return nil, err
+	// }
+	// out, err := command.Output()
+	// if err != nil {
+	// 	log.Print(e.String())
+	// 	return nil, err
+	// }
+	// log.Println(out)
+	// return out, nil
+}
+
+func (d *docker) sendFile(id, src, dst string) error {
+	command := exec.Command("docker", "cp", src, id+":"+dst)
+	err := command.Start()
+	if err != nil {
+		return err
+	}
+	return command.Wait()
 }

@@ -534,7 +534,7 @@ func (l *lessonsHandler) store(w http.ResponseWriter, r *http.Request) {
 		respond(w, http.StatusBadRequest)
 		return
 	}
-	lesson := lesson{
+	lsn := lesson{
 		Title:         title,
 		Description:   description,
 		Book:          "",
@@ -542,7 +542,7 @@ func (l *lessonsHandler) store(w http.ResponseWriter, r *http.Request) {
 		ThumbnailPath: strings.TrimPrefix(pathNoimage, cwd),
 		UserID:        uint(userIDUint),
 	}
-	db.Save(&lesson)
+	db.Save(&lsn)
 	if db.Error != nil {
 		respond(w, http.StatusInternalServerError)
 		return
@@ -553,30 +553,53 @@ func (l *lessonsHandler) store(w http.ResponseWriter, r *http.Request) {
 		respond(w, http.StatusInternalServerError)
 		return
 	}
-	lessonDirectoryPath := filepath.Join(pathLessons, fmt.Sprintf("%d", lesson.ID))
+	lessonDirectoryPath := filepath.Join(pathLessons, fmt.Sprintf("%d", lsn.ID))
 	os.MkdirAll(lessonDirectoryPath, 0755)
 	thumbnailHeaders := r.MultipartForm.File["thumbnail"]
 	if len(thumbnailHeaders) == 1 {
-		thumbnailPath := filepath.Join(pathPublicImagesLessons, fmt.Sprintf("%d", lesson.ID), "thumbnail")
+		thumbnailPath := filepath.Join(pathPublicImagesLessons, fmt.Sprintf("%d", lsn.ID), "thumbnail")
 		path, err := saveFile(thumbnailPath, thumbnailHeaders[0])
 		if err != nil {
 			respond(w, http.StatusInternalServerError)
 			return
 		}
-		lesson.ThumbnailPath = strings.TrimPrefix(path, cwd)
+		lsn.ThumbnailPath = strings.TrimPrefix(path, cwd)
 	}
-	imagename, err := buildDockerImage(image, u.Name, lessonDirectoryPath)
-	if err != nil {
-		respond(w, http.StatusInternalServerError)
-		return
+	imagename := ""
+	superLessons := r.MultipartForm.Value["superLesson"]
+	if len(superLessons) == 1 {
+		superLesson := lesson{}
+		db.Where("title = ? AND user_id = ?", superLessons[0], userID).First(&superLesson)
+		if db.Error != nil {
+			respond(w, http.StatusInternalServerError)
+			return
+		}
+		d := docker{}
+		uid, err := uuid.NewUUID()
+		if err != nil {
+			respond(w, http.StatusInternalServerError)
+			return
+		}
+		imagename = uid.String()
+		err = d.commit(superLesson.DockerContainerID, imagename)
+		if err != nil {
+			respond(w, http.StatusInternalServerError)
+			return
+		}
+	} else {
+		imagename, err = buildDockerImage(image, u.Name, lessonDirectoryPath)
+		if err != nil {
+			respond(w, http.StatusInternalServerError)
+			return
+		}
 	}
 	dc, err := initDockerContainer(imagename, consolePort, ports...)
 	if err != nil {
 		respond(w, http.StatusInternalServerError)
 		return
 	}
-	lesson.DockerContainerID = dc.id
-	lesson.HostConsolePort = dc.hostPorts[consolePort]
+	lsn.DockerContainerID = dc.id
+	lsn.HostConsolePort = dc.hostPorts[consolePort]
 	for _, port := range ports {
 		portUint, err := strconv.ParseUint(port, 10, 64)
 		if err != nil {
@@ -586,7 +609,7 @@ func (l *lessonsHandler) store(w http.ResponseWriter, r *http.Request) {
 		lessonPort := lessonPort{
 			Port:     uint(portUint),
 			HostPort: dc.hostPorts[port],
-			LessonID: lesson.ID,
+			LessonID: lsn.ID,
 		}
 		db.Save(&lessonPort)
 		if db.Error != nil {
@@ -594,8 +617,8 @@ func (l *lessonsHandler) store(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	db.Save(&lesson)
-	respondJSON(w, http.StatusOK, lesson)
+	db.Save(&lsn)
+	respondJSON(w, http.StatusOK, lsn)
 }
 
 func (l *lessonsHandler) update(w http.ResponseWriter, r *http.Request, id string) {
@@ -619,6 +642,22 @@ func (l *logoutHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (l *logoutHandler) logout(w http.ResponseWriter, r *http.Request) {
+	sessionCookie, err := r.Cookie(cookieNameSessionID)
+	if err != nil {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	sessionID := sessionCookie.Value
+	_, err = sessionManager.Provider.Get(sessionID)
+	if err != nil {
+		respond(w, http.StatusInternalServerError)
+		return
+	}
+	err = sessionManager.Provider.Stop(sessionID)
+	if err != nil {
+		respond(w, http.StatusInternalServerError)
+		return
+	}
 	http.SetCookie(w, newCookie(cookieNameSessionID, "", -1))
 }
 
@@ -688,6 +727,7 @@ func (m *materialsHandler) store(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		material.ThumbnailPath = strings.TrimPrefix(path, cwd)
+		db.Save(&material)
 	}
 	for _, lessonID := range lessonIDs {
 		lessonIDUint, err := strconv.ParseUint(lessonID, 10, 64)
@@ -696,7 +736,6 @@ func (m *materialsHandler) store(w http.ResponseWriter, r *http.Request) {
 		}
 		count := 0
 		db.Model(&lesson{}).Where("id = ?", lessonID).Count(&count)
-		//log.Println(count)
 		if count == 0 {
 			continue
 		}

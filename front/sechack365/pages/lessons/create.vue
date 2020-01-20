@@ -5,6 +5,7 @@
     <v-container class="mt-3">
       <v-card class="pa-4">
         <v-form ref="form">
+          <v-select v-model="superLesson" :items="lessonTitles" label="継承するレッスン"></v-select>
           <v-file-input v-model="thumbnail" label="サムネイル画像"></v-file-input>
           <v-text-field v-model="title" :rules="titleRules" required label="タイトル"></v-text-field>
           <v-textarea v-model="description" :rules="descriptionRules" required label="説明"></v-textarea>
@@ -39,11 +40,13 @@ export default {
         v => !!v || "説明文を入力してください",
         v => v.length <= 2048 || "2048文字以内で入力してください"
       ],
+      lessons: [],
       loading: false,
       os: "",
       osList: ["centos:7", "ubuntu:16.04"],
       osRules: [v => !!v || "osを選択してください"],
       ports: "",
+      superLesson: "",
       thumbnail: null,
       title: "",
       titleRules: [
@@ -52,8 +55,22 @@ export default {
       ]
     };
   },
+  computed: {
+    lessonTitles() {
+      return this.lessons.map(lesson => lesson.Title);
+    }
+  },
   created() {
-    this.$fetchUser();
+    this.$fetchUser(() => {
+      const url = new Url(urlLessons);
+      const data = {
+        user_id: this.$user.ID,
+        downloaded: false
+      };
+      ajax.get(url.base, data).then(response => {
+        this.lessons = response.data;
+      });
+    });
   },
   methods: {
     submit() {
@@ -68,12 +85,16 @@ export default {
           userID: this.$user.ID,
           "ports[]": this.ports.split(" ")
         };
+        if (this.superLesson !== "") {
+          data.superLesson = this.superLesson;
+        }
+        console.log(data);
         const config = {
           headers: {
             "content-type": "multipart/form-data"
           }
         };
-        this.loading = true;
+        // this.loading = true;
         ajax.post(url.base, data, config).then(response => {
           this.loading = false;
           this.$router.push(this.$routes.dashboard.lessons);

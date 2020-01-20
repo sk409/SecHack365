@@ -13,7 +13,46 @@
         </v-col>
         <v-col cols="10" class="h-100 pa-0">
           <div id="editor" class="h-100"></div>
-          <iframe :src="consoleURL" class="console"></iframe>
+          <div class="console-view">
+            <div class="console-toolbar">
+              <v-row>
+                <v-col cols="3">
+                  <v-menu offset-y>
+                    <template v-slot:activator="{on}">
+                      <v-btn text v-on="on">
+                        <v-icon>mdi-console</v-icon>
+                        <v-icon>mdi-menu-down</v-icon>
+                        <span>{{consoleIndex}}</span>
+                      </v-btn>
+                    </template>
+                    <v-list>
+                      <v-list-item
+                        v-for="index in consoleCount"
+                        :key="index"
+                        @click="consoleIndex = index"
+                      >
+                        <v-list-item-title>{{index}}</v-list-item-title>
+                      </v-list-item>
+                    </v-list>
+                  </v-menu>
+                </v-col>
+                <v-col cols="1" offset="8">
+                  <v-btn icon @click="appendConsole">
+                    <v-icon>mdi-plus</v-icon>
+                  </v-btn>
+                </v-col>
+              </v-row>
+            </div>
+            <div class="console-container">
+              <iframe
+                v-for="index in consoleCount"
+                :key="index"
+                :src="consoleURL"
+                :style="consoleStyle(index)"
+                class="w-100 h-100 console"
+              ></iframe>
+            </div>
+          </div>
         </v-col>
       </v-row>
     </v-container>
@@ -97,6 +136,8 @@ export default {
   },
   data() {
     return {
+      consoleCount: 1,
+      consoleIndex: 1,
       delayedUpdate: _.debounce(this.updateFileText, 1000),
       file: null,
       filetree: [],
@@ -139,6 +180,10 @@ export default {
     this.setupAce();
   },
   methods: {
+    appendConsole() {
+      ++this.consoleCount;
+      this.consoleIndex = this.consoleCount;
+    },
     clickFileTreeItem(item) {
       if (item.file) {
         const url = new Url(urlFiles);
@@ -160,6 +205,9 @@ export default {
           item.children = [];
         }
       }
+    },
+    consoleStyle(index) {
+      return index === this.consoleIndex ? { "z-index": 1 } : {};
     },
     fetchChildren(item) {
       if (item.file) {
@@ -211,8 +259,21 @@ export default {
   height: 60%;
 }
 .console {
-  width: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+.console-container {
+  height: 80%;
+  position: relative;
+}
+.console-toolbar {
+  height: 20%;
+}
+.console-view {
+  border-top: 1px solid lightgrey;
   height: 39%;
+  position: relative;
 }
 .file-tree {
   overflow: scroll;

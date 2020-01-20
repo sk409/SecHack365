@@ -8,13 +8,7 @@
     </v-app-bar>
     <v-navigation-drawer v-model="drawer" app class="grey lighten-4">
       <div class="pa-2">
-        <v-img
-          v-if="lesson"
-          :src="$serverUrl(lesson.ThumbnailPath)"
-          width="60%"
-          contain
-          class="d-block mx-auto"
-        ></v-img>
+        <img v-if="lesson" :src="$serverUrl(lesson.ThumbnailPath)" class="thumbnail-2" />
       </div>
       <div class="text-center title">{{ lesson ? lesson.Title : "" }}</div>
       <v-divider class="my-2"></v-divider>
@@ -27,7 +21,7 @@
             <v-list-item-title>説明文</v-list-item-title>
           </v-list-item-content>
         </v-list-item>
-        <v-list-group prepend-icon="mdi-lan-connect">
+        <v-list-group prepend-icon="mdi-wan">
           <template v-slot:activator>
             <v-list-item-title>ポート</v-list-item-title>
           </template>
@@ -40,7 +34,7 @@
             class="ml-5"
           >
             <v-list-item-icon>
-              <v-icon>mdi-view-dashboard</v-icon>
+              <v-icon>mdi-lan-connect</v-icon>
             </v-list-item-icon>
             <v-list-item-content>
               <v-list-item-title>{{ port.Port }}</v-list-item-title>
@@ -78,7 +72,7 @@ export default {
         },
         {
           title: "ポート",
-          icon: "mdi-lan-connect",
+          icon: "mdi-wan",
           route: "/materials/created"
         },
         {

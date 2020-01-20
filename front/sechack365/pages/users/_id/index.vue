@@ -2,7 +2,7 @@
   <v-container>
     <v-row>
       <v-col cols="3">
-        <img :src="profileImagePath" />
+        <img :src="profileImagePath" class="thumbnail-3 thumbnail-top" />
       </v-col>
       <v-col cols="9">
         <div class="title">{{user ? user.Name : ''}}</div>
@@ -18,9 +18,7 @@
         class="ma-2"
         @click="$router.push($routes.materials.show(material.ID))"
       >
-        <v-avatar class="d-block mx-auto" size="100">
-          <v-img v-if="material" :src="$serverUrl(material.ThumbnailPath)"></v-img>
-        </v-avatar>
+        <img v-if="material" :src="$serverUrl(material.ThumbnailPath)" class="thumbnail-2" />
         <v-divider></v-divider>
         <v-card-title>{{material.Title | truncate(12)}}</v-card-title>
         <v-card-subtitle>全{{material.lessons.length}}レッスン</v-card-subtitle>
