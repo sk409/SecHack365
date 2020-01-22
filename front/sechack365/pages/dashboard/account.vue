@@ -8,14 +8,22 @@
         <div>
           <span class="headline">{{$user ? $user.Name : ""}}</span>
         </div>
-        <div class="mt-3 body">バイオテキスト</div>
+        <!-- <div class="mt-3 body">バイオテキスト</!-->
       </v-col>
     </v-row>
     <v-divider class="my-3"></v-divider>
     <div class="text-center">
       <v-btn color="secondary" @click="logout">ログアウト</v-btn>
     </div>
-    <v-btn v-if="$user" color="accent" fab fixed right bottom>
+    <v-btn
+      v-if="$user"
+      color="accent"
+      fab
+      fixed
+      right
+      bottom
+      @click="$router.push($routes.users.edit($user.ID))"
+    >
       <v-icon>mdi-account-edit</v-icon>
     </v-btn>
   </v-container>

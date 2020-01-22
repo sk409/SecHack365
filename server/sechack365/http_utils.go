@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -123,15 +122,10 @@ func saveFile(path string, header *multipart.FileHeader) (string, error) {
 }
 
 func update(r *http.Request, id string, model interface{}) error {
-	data, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return err
-	}
-	params := strings.Split(string(data), "&")
+	r.ParseForm()
 	query := make(map[string]interface{})
-	for _, param := range params {
-		keyvalue := strings.Split(param, "=")
-		query[keyvalue[0]] = keyvalue[1]
+	for key, value := range r.PostForm {
+		query[key] = value[0]
 	}
 	db.Model(model).Where("id = ?", id).Updates(query)
 	return db.Error

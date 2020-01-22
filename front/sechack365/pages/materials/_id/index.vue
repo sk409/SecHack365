@@ -10,7 +10,7 @@
       </v-col>
       <v-col cols="9">
         <div class="title">{{material ? material.Title : ""}}</div>
-        <div class="body">バイオテキスト</div>
+        <!-- <div class="body">バイオテキスト</div> -->
       </v-col>
     </v-row>
     <v-divider></v-divider>
@@ -19,13 +19,13 @@
       <v-card v-for="lesson in material.lessons" :key="lesson.ID" class="ma-4">
         <img v-if="lesson" contain :src="$serverUrl(lesson.ThumbnailPath)" class="thumbnail-2" />
         <v-divider></v-divider>
-        <v-card-title>{{lesson.Title | truncate(12)}}</v-card-title>
+        <v-card-title>{{lesson.Title | truncate(20)}}</v-card-title>
         <v-card-text>{{lesson.Description | truncate(30)}}</v-card-text>
       </v-card>
     </div>
     <v-snackbar v-model="snackbar" :timeout="2000" top>
       <span>{{notification}}</span>
-      <v-btn color="accent" icon @click="snackbar = false">
+      <v-btn icon @click="snackbar = false">
         <v-icon>mdi-close</v-icon>
       </v-btn>
     </v-snackbar>

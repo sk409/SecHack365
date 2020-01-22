@@ -2,11 +2,11 @@
   <v-container>
     <v-row>
       <v-col cols="3">
-        <img :src="profileImagePath" class="thumbnail-3 thumbnail-top" />
+        <img :src="profileImagePath" class="thumbnail-2 thumbnail-top" />
       </v-col>
       <v-col cols="9">
         <div class="title">{{user ? user.Name : ''}}</div>
-        <div class="body mt-2">バイオテキスト</div>
+        <!-- <div class="body mt-2">バイオテキスト</div> -->
       </v-col>
     </v-row>
     <v-divider></v-divider>
@@ -18,8 +18,11 @@
         class="ma-2"
         @click="$router.push($routes.materials.show(material.ID))"
       >
-        <img v-if="material" :src="$serverUrl(material.ThumbnailPath)" class="thumbnail-2" />
-        <v-divider></v-divider>
+        <img
+          v-if="material"
+          :src="$serverUrl(material.ThumbnailPath)"
+          class="thumbnail-2 thumbnail-top"
+        />
         <v-card-title>{{material.Title | truncate(12)}}</v-card-title>
         <v-card-subtitle>全{{material.lessons.length}}レッスン</v-card-subtitle>
         <v-card-text>{{material.Description | truncate(30)}}</v-card-text>

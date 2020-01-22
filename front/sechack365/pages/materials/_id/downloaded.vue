@@ -5,7 +5,7 @@
       <v-container v-if="material">
         <v-row>
           <v-col cols="3">
-            <v-img :src="$serverUrl(material.ThumbnailPath)"></v-img>
+            <img :src="$serverUrl(material.ThumbnailPath)" class="thumbnail-2 thumbnail-top" />
           </v-col>
           <v-col cols="9">
             <div class="title">{{material.Title}}</div>
@@ -16,11 +16,9 @@
         <v-divider></v-divider>
         <div v-for="lesson in material.lessons" :key="lesson.id" class="mx-auto my-4 lesson">
           <div>
-            <v-row align="center">
-              <v-col cols="2" style="border-left:5px solid green;">
-                <v-avatar size="64">
-                  <v-img :src="$serverUrl(lesson.ThumbnailPath)"></v-img>
-                </v-avatar>
+            <v-row align="center" class="lesson-row">
+              <v-col cols="2">
+                <img :src="$serverUrl(lesson.ThumbnailPath)" class="thumbnail-2" />
               </v-col>
               <v-col cols="3">
                 <div class="caption">タイトル</div>
@@ -93,5 +91,8 @@ export default {
 <style>
 .lesson {
   width: 60%;
+}
+.lesson-row {
+  border-left: 3px solid #00bcd4;
 }
 </style>

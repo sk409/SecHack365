@@ -1,6 +1,6 @@
 <template>
   <div class="w-100 h-100">
-    <mavon-editor v-model="book" language="ja" class="w-100 h-100 editor" @change="change" />
+    <mavon-editor v-model="book" language="ja" class="w-100 h-100 editor" />
   </div>
 </template>
 
@@ -32,18 +32,21 @@ export default {
       this.book = this.lesson.Book;
     });
   },
-  methods: {
-    change() {
+  watch: {
+    book(value) {
       this.lesson.Book = this.book;
       this.updateQueue.then(() => {
         this.delayedUpdate();
       });
-    },
+    }
+  },
+  methods: {
     update() {
       const url = new Url(urlLessons);
       const data = {
         book: this.lesson.Book
       };
+      console.log(data);
       ajax.put(url.update(this.lesson.ID), data);
     }
   }

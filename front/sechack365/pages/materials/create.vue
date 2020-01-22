@@ -1,33 +1,43 @@
 <template>
   <div>
+    <div class="pa-4">レッスン作成</div>
+    <v-divider></v-divider>
     <v-container class="mt-4">
-      <div class="header">教材作成</div>
-      <v-form ref="form">
-        <v-file-input v-model="thumbnail" label="サムネイル画像"></v-file-input>
-        <v-text-field v-model="title" :rules="titleRules" label="タイトル"></v-text-field>
-        <v-text-field v-model="description" :rules="descriptionRules" label="概要"></v-text-field>
-      </v-form>
-      <div class="mt-5 subtitle-1 text--grey">選択したレッスン</div>
-      <v-divider class="mb-3"></v-divider>
-      <v-card v-for="lesson in lessonsSelected" :key="lesson.ID" width="512" class="mb-3 mx-auto">
-        <v-container>
-          <v-row>
-            <v-col cols="3">
-              <v-img v-if="lesson" :src="$serverUrl(lesson.ThumbnailPath)" height="100" contain></v-img>
-            </v-col>
-            <v-col>
-              <v-card-title>{{lesson.Title | truncate(10)}}</v-card-title>
-              <v-card-text>{{lesson.Description | truncate(30)}}</v-card-text>
-            </v-col>
-          </v-row>
-        </v-container>
+      <v-card>
+        <v-card-text>
+          <v-form ref="form">
+            <v-file-input v-model="thumbnail" label="サムネイル画像"></v-file-input>
+            <v-text-field v-model="title" :rules="titleRules" label="タイトル"></v-text-field>
+            <v-text-field v-model="description" :rules="descriptionRules" label="概要"></v-text-field>
+          </v-form>
+          <div class="mt-5 subtitle-1 text--grey">選択したレッスン</div>
+          <v-divider class="mb-3"></v-divider>
+          <v-card
+            v-for="lesson in lessonsSelected"
+            :key="lesson.ID"
+            width="512"
+            class="mb-3 mx-auto"
+          >
+            <v-container>
+              <v-row>
+                <v-col cols="3">
+                  <v-img v-if="lesson" :src="$serverUrl(lesson.ThumbnailPath)" height="100" contain></v-img>
+                </v-col>
+                <v-col>
+                  <v-card-title>{{lesson.Title | truncate(20)}}</v-card-title>
+                  <v-card-text>{{lesson.Description | truncate(30)}}</v-card-text>
+                </v-col>
+              </v-row>
+            </v-container>
+          </v-card>
+          <div class="text-center mt-5 mb-5">
+            <v-btn color="primary" @click="lessonDialog = true">レッスンを追加</v-btn>
+          </div>
+          <div class="text-center">
+            <v-btn color="accent" :loading="loading" @click="submit">作成</v-btn>
+          </div>
+        </v-card-text>
       </v-card>
-      <div class="text-center mt-5 mb-5">
-        <v-btn color="primary" @click="lessonDialog = true">レッスンを追加</v-btn>
-      </div>
-      <div class="text-center">
-        <v-btn color="accent" :loading="loading" @click="submit">作成</v-btn>
-      </div>
     </v-container>
     <v-dialog v-model="lessonDialog" max-width="256">
       <v-card>

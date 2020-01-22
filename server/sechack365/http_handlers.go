@@ -166,6 +166,7 @@ func (d *downloadsHandler) store(w http.ResponseWriter, r *http.Request) {
 			respond(w, http.StatusInternalServerError)
 			return
 		}
+		lc.ThumbnailPath = strings.TrimPrefix(lessonCloneThumbnailPath, cwd)
 		d := docker{}
 		imagename, err := uuid.NewUUID()
 		if err != nil {
@@ -930,6 +931,11 @@ func (u *usersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
+	case http.MethodPut:
+		id, ok := routeWithID(r, base)
+		if ok {
+			u.update(w, r, id)
+		}
 	}
 	respond(w, http.StatusNotFound)
 }
@@ -985,4 +991,21 @@ func (u *usersHandler) search(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respondJSON(w, http.StatusOK, users)
+}
+
+func (u *usersHandler) update(w http.ResponseWriter, r *http.Request, id string) {
+	r.ParseMultipartForm(1 << 62)
+	thumbnailHeaders := r.MultipartForm.File["profileImage"]
+	if len(thumbnailHeaders) == 1 {
+		thumbnailPath := filepath.Join(pathPublicImagesUsers, id, "profileImage")
+		path, err := saveFile(thumbnailPath, thumbnailHeaders[0])
+		if err != nil {
+			respond(w, http.StatusInternalServerError)
+			return
+		}
+		user := user{}
+		db.Where("id = ?", id).First(&user)
+		user.ProfileImagePath = strings.TrimPrefix(path, cwd)
+		db.Save(&user)
+	}
 }

@@ -94,19 +94,20 @@ export default {
             user_id: this.$user.ID,
             downloaded: 1
           };
-          ajax.get(url.base, data).then(response => {
+          ajax.get(url.base, data).then(async response => {
             if (response.status !== 200) {
               return;
             }
-            response.data.forEach(material => {
+            for (const material of response.data) {
               material.CreatedAt = defaultDateFormatter(material.CreatedAt);
               material.length = material.lessons.length;
-              const user = users.find(user => user.ID === material.UserID);
-              if (!user) {
-                return;
-              }
-              material.author = user.Name;
-            });
+              const url = new Url(urlUsers);
+              const data = {
+                id: material.AuthorUserID
+              };
+              const response = await ajax.get(url.base, data);
+              material.author = response.data[0].Name;
+            }
             this.materials = response.data;
           });
         });

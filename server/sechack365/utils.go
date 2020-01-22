@@ -105,6 +105,10 @@ func initDockerContainer(imagename, consolePort string, ports ...string) (*docke
 	if err != nil {
 		return nil, err
 	}
+	// _, err = d.exec(containername.String(), []string{"-d"}, "find /var/lib/mysql -type f -exec touch {} \\;")
+	// if err != nil {
+	// 	return nil, err
+	// }
 	portsOutput, err := d.port(containername.String())
 	if err != nil {
 		return nil, err
@@ -128,10 +132,6 @@ func initDockerContainer(imagename, consolePort string, ports ...string) (*docke
 		hostPorts: hostPorts,
 	}
 	return &dc, nil
-	//lesson.DockerContainerID = string(containerID)
-	// if port == consolePort {
-	// 		lesson.HostConsolePort = uint(hostPort)
-	// 	}
 }
 
 func notEmptyAll(vars ...interface{}) bool {

@@ -14,34 +14,28 @@
         <v-col cols="10" class="h-100 pa-0">
           <div id="editor" class="h-100"></div>
           <div class="console-view">
-            <div class="console-toolbar">
-              <v-row>
-                <v-col cols="3">
-                  <v-menu offset-y>
-                    <template v-slot:activator="{on}">
-                      <v-btn text v-on="on">
-                        <v-icon>mdi-console</v-icon>
-                        <v-icon>mdi-menu-down</v-icon>
-                        <span>{{consoleIndex}}</span>
-                      </v-btn>
-                    </template>
-                    <v-list>
-                      <v-list-item
-                        v-for="index in consoleCount"
-                        :key="index"
-                        @click="consoleIndex = index"
-                      >
-                        <v-list-item-title>{{index}}</v-list-item-title>
-                      </v-list-item>
-                    </v-list>
-                  </v-menu>
-                </v-col>
-                <v-col cols="1" offset="8">
-                  <v-btn icon @click="appendConsole">
-                    <v-icon>mdi-plus</v-icon>
+            <div class="console-toolbar d-flex">
+              <v-menu offset-y>
+                <template v-slot:activator="{on}">
+                  <v-btn text v-on="on">
+                    <v-icon>mdi-console</v-icon>
+                    <v-icon>mdi-menu-down</v-icon>
+                    <span>{{consoleIndex}}</span>
                   </v-btn>
-                </v-col>
-              </v-row>
+                </template>
+                <v-list>
+                  <v-list-item
+                    v-for="index in consoleCount"
+                    :key="index"
+                    @click="consoleIndex = index"
+                  >
+                    <v-list-item-title>{{index}}</v-list-item-title>
+                  </v-list-item>
+                </v-list>
+              </v-menu>
+              <v-btn icon @click="appendConsole" class="ml-auto mr-3">
+                <v-icon>mdi-plus</v-icon>
+              </v-btn>
             </div>
             <div class="console-container">
               <iframe
@@ -235,7 +229,7 @@ export default {
       editor.setFontSize(20);
       editor.setReadOnly(true);
       editor.session.on("change", delta => {
-        if (delta.action === "insert" && this.file.text !== editor.getValue()) {
+        if (this.file.text !== editor.getValue()) {
           this.file.text = editor.getValue();
           this.delayedUpdate();
         }
@@ -273,7 +267,6 @@ export default {
 .console-view {
   border-top: 1px solid lightgrey;
   height: 39%;
-  position: relative;
 }
 .file-tree {
   overflow: scroll;

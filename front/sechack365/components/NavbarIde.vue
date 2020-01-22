@@ -26,7 +26,7 @@
             <v-list-item-title>ポート</v-list-item-title>
           </template>
           <v-list-item
-            v-for="port in lesson ? lesson.Ports : []"
+            v-for="port in ports"
             :key="port.ID"
             :href="serverURL(port.HostPort)"
             target="_blank"
@@ -83,6 +83,16 @@ export default {
       ]
     };
   },
+  computed: {
+    ports() {
+      if (!this.lesson) {
+        return [];
+      }
+      return this.lesson.Ports.filter(
+        port => port.Port !== this.lesson.ConsolePort
+      );
+    }
+  },
   methods: {
     serverURL(port) {
       return process.env.serverHost + ":" + port;
@@ -90,3 +100,9 @@ export default {
   }
 };
 </script>
+
+<style scoped>
+.navigation-drawer {
+  z-index: 100;
+}
+</style>
