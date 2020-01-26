@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="pa-4">レッスン作成</div>
+    <div class="pa-4">教材作成</div>
     <v-divider></v-divider>
     <v-container class="mt-4">
       <v-card>

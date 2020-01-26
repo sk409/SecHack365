@@ -251,6 +251,7 @@ export default {
 <style>
 #editor {
   height: 60%;
+  z-index: 1;
 }
 .console {
   position: absolute;

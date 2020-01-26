@@ -30,6 +30,7 @@
     <v-data-table
       :custom-filter="broadMatchFilter"
       :headers="headers"
+      hide-default-footer
       :hide-default-header="hideDefaultHeader"
       item-key="ID"
       :items="items"

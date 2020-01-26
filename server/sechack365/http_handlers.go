@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"path"
@@ -482,8 +483,14 @@ func (l *lessonsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		l.fetch(w, r)
 		return
 	case http.MethodPost:
-		l.store(w, r)
-		return
+		switch r.URL.Path {
+		case base:
+			l.store(w, r)
+			return
+		case base + "book":
+			l.book(w, r)
+			return
+		}
 	case http.MethodPut:
 		id, ok := routeWithID(r, base)
 		if ok {
@@ -569,13 +576,15 @@ func (l *lessonsHandler) store(w http.ResponseWriter, r *http.Request) {
 	os.MkdirAll(lessonDirectoryPath, 0755)
 	thumbnailHeaders := r.MultipartForm.File["thumbnail"]
 	if len(thumbnailHeaders) == 1 {
-		thumbnailPath := filepath.Join(pathPublicImagesLessons, fmt.Sprintf("%d", lsn.ID), "thumbnail")
-		path, err := saveFile(thumbnailPath, thumbnailHeaders[0])
+		thumbnailHeader := thumbnailHeaders[0]
+		ext := extension(thumbnailHeader.Filename)
+		thumbnailPath := filepath.Join(pathPublicImagesLessons, fmt.Sprintf("%d", lsn.ID), "thumbnail."+ext)
+		err = saveFile(thumbnailPath, thumbnailHeader)
 		if err != nil {
 			respond(w, http.StatusInternalServerError)
 			return
 		}
-		lsn.ThumbnailPath = strings.TrimPrefix(path, cwd)
+		lsn.ThumbnailPath = strings.TrimPrefix(thumbnailPath, cwd)
 	}
 	imagename := ""
 	if len(superLessons) == 1 {
@@ -631,6 +640,24 @@ func (l *lessonsHandler) store(w http.ResponseWriter, r *http.Request) {
 	}
 	db.Save(&lsn)
 	respondJSON(w, http.StatusOK, lsn)
+}
+
+func (l *lessonsHandler) book(w http.ResponseWriter, r *http.Request) {
+	r.ParseMultipartForm(1 << 62)
+	log.Println(r.MultipartForm)
+	imageHeaders := r.MultipartForm.File["image"]
+	if !notEmptyAll(imageHeaders) {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	imageHeader := imageHeaders[0]
+	path := filepath.Join(pathPublicImagesLessons, imageHeader.Filename)
+	err := saveFile(path, imageHeader)
+	if err != nil {
+		respond(w, http.StatusInternalServerError)
+		return
+	}
+	respondMessage(w, http.StatusOK, strings.TrimPrefix(path, cwd))
 }
 
 func (l *lessonsHandler) update(w http.ResponseWriter, r *http.Request, id string) {
@@ -754,13 +781,15 @@ func (m *materialsHandler) store(w http.ResponseWriter, r *http.Request) {
 	}
 	thumbnailHeaders := r.MultipartForm.File["thumbnail"]
 	if len(thumbnailHeaders) == 1 {
-		thumbnailPath := filepath.Join(pathPublicImagesMaterials, fmt.Sprintf("%d", material.ID), "thumbnail")
-		path, err := saveFile(thumbnailPath, thumbnailHeaders[0])
+		thumbnailHeader := thumbnailHeaders[0]
+		ext := extension(thumbnailHeader.Filename)
+		thumbnailPath := filepath.Join(pathPublicImagesMaterials, fmt.Sprintf("%d", material.ID), "thumbnail."+ext)
+		err = saveFile(thumbnailPath, thumbnailHeader)
 		if err != nil {
 			respond(w, http.StatusInternalServerError)
 			return
 		}
-		material.ThumbnailPath = strings.TrimPrefix(path, cwd)
+		material.ThumbnailPath = strings.TrimPrefix(thumbnailPath, cwd)
 		db.Save(&material)
 	}
 	for _, lessonID := range lessonIDs {
@@ -781,27 +810,6 @@ func (m *materialsHandler) store(w http.ResponseWriter, r *http.Request) {
 	}
 	respondJSON(w, http.StatusOK, material)
 }
-
-// func (m *materialsHandler) download(w http.ResponseWriter, r *http.Request) {
-// 	userID := r.PostFormValue("userID")
-// 	materialID := r.PostFormValue("materialID")
-// 	if !notEmptyAll(userID, materialID) {
-// 		respond(w, http.StatusBadRequest)
-// 		return
-// 	}
-// 	userIDUint, err := strconv.ParseUint(userID, 10, 64)
-// 	if err != nil {
-// 		respond(w, http.StatusBadRequest)
-// 		return
-// 	}
-// 	u := user{}
-// 	db.Where("id = ?", userID).First(&u)
-// 	if u.ID == 0 {
-// 		respond(w, http.StatusBadRequest)
-// 		return
-// 	}
-
-// }
 
 func (m *materialsHandler) destroy(w http.ResponseWriter, r *http.Request, id string) {
 	mtl := material{}
@@ -997,15 +1005,17 @@ func (u *usersHandler) update(w http.ResponseWriter, r *http.Request, id string)
 	r.ParseMultipartForm(1 << 62)
 	thumbnailHeaders := r.MultipartForm.File["profileImage"]
 	if len(thumbnailHeaders) == 1 {
-		thumbnailPath := filepath.Join(pathPublicImagesUsers, id, "profileImage")
-		path, err := saveFile(thumbnailPath, thumbnailHeaders[0])
+		thumbnailHeader := thumbnailHeaders[0]
+		ext := extension(thumbnailHeader.Filename)
+		thumbnailPath := filepath.Join(pathPublicImagesUsers, id, "profileImage."+ext)
+		err := saveFile(thumbnailPath, thumbnailHeader)
 		if err != nil {
 			respond(w, http.StatusInternalServerError)
 			return
 		}
 		user := user{}
 		db.Where("id = ?", id).First(&user)
-		user.ProfileImagePath = strings.TrimPrefix(path, cwd)
+		user.ProfileImagePath = strings.TrimPrefix(thumbnailPath, cwd)
 		db.Save(&user)
 	}
 }

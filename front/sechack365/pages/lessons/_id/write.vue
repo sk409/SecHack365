@@ -1,17 +1,13 @@
 <template>
   <div class="w-100 h-100">
-    <mavon-editor v-model="book" language="ja" class="w-100 h-100 editor" />
+    <mavon-editor v-model="book" language="ja" class="w-100 h-100 editor" @imgAdd="imgAdd" />
   </div>
 </template>
 
 <script>
 import _ from "lodash";
 import ajax from "@/assets/js/ajax.js";
-import mavonEditor from "mavon-editor";
-import "mavon-editor/dist/css/index.css";
-import Vue from "vue";
 import { Url, urlLessons } from "@/assets/js/url.js";
-Vue.use(mavonEditor);
 export default {
   data() {
     return {
@@ -41,12 +37,38 @@ export default {
     }
   },
   methods: {
+    imgAdd(pos, file) {
+      // var formdata = new FormData();
+      // formdata.append("image", $file);
+      // axios({
+      //   url: "server url",
+      //   method: "post",
+      //   data: formdata,
+      //   headers: { "Content-Type": "multipart/form-data" }
+      // }).then(url => {
+      //   // step 2. replace url ![...](0) -> ![...](url)
+      //   $vm.$img2Url(pos, url);
+      // });
+      const url = new Url(urlLessons);
+      const data = {
+        image: file
+      };
+      const config = {
+        headers: {
+          "content-type": "multipart/form-data"
+        }
+      };
+      ajax.post(url.book, data, config).then(response => {
+        const regex = new RegExp(`!\\[${file.name}\\]\\([0-9]+\\)`);
+        const u = process.env.serverOrigin + response.data;
+        this.book = this.book.replace(regex, `![${file.name}](${u})`);
+      });
+    },
     update() {
       const url = new Url(urlLessons);
       const data = {
         book: this.lesson.Book
       };
-      console.log(data);
       ajax.put(url.update(this.lesson.ID), data);
     }
   }

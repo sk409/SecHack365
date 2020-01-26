@@ -100,25 +100,19 @@ func routeWithID(r *http.Request, base string) (string, bool) {
 	return string(matches[0][1]), true
 }
 
-func saveFile(path string, header *multipart.FileHeader) (string, error) {
-	filenameComponents := strings.Split(header.Filename, ".")
-	extension := ""
-	if 2 <= len(filenameComponents) {
-		extension = filenameComponents[len(filenameComponents)-1]
-	}
-	path += "." + extension
+func saveFile(path string, header *multipart.FileHeader) error {
 	os.MkdirAll(filepath.Dir(path), 0755)
 	file, err := os.Create(filepath.Join(path))
 	if err != nil {
-		return "", err
+		return err
 	}
 	defer file.Close()
 	multipartFile, err := header.Open()
 	if err != nil {
-		return "", err
+		return err
 	}
 	io.Copy(file, multipartFile)
-	return path, nil
+	return nil
 }
 
 func update(r *http.Request, id string, model interface{}) error {

@@ -28,6 +28,9 @@ export class Url {
       return routeWithID(this.base, id);
     }
     switch (type) {
+      case urlLessons:
+        this.book = this.base + "book";
+        break;
       case urlUsers:
         this.search = this.base + "search";
         this.follow = (id) => {

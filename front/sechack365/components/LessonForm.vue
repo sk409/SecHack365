@@ -7,7 +7,7 @@
         <v-form ref="form">
           <v-file-input v-model="thumbnail" label="サムネイル画像"></v-file-input>
           <v-text-field v-model="title" :rules="titleRules" required label="タイトル"></v-text-field>
-          <v-textarea v-model="description" :rules="descriptionRules" required label="説明"></v-textarea>
+          <v-textarea v-model="description" :rules="descriptionRules" required label="概要"></v-textarea>
           <v-select
             v-if="mode=='inheritance'"
             v-model="superLesson"

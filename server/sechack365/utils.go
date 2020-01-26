@@ -91,6 +91,15 @@ func encrypt(data []byte) []byte {
 	return hash[:]
 }
 
+func extension(str string) string {
+	filenameComponents := strings.Split(str, ".")
+	extension := ""
+	if 2 <= len(filenameComponents) {
+		extension = filenameComponents[len(filenameComponents)-1]
+	}
+	return extension
+}
+
 func initDockerContainer(imagename, consolePort string, ports ...string) (*dockerContainer, error) {
 	d := docker{}
 	containername, err := uuid.NewUUID()
@@ -105,10 +114,6 @@ func initDockerContainer(imagename, consolePort string, ports ...string) (*docke
 	if err != nil {
 		return nil, err
 	}
-	// _, err = d.exec(containername.String(), []string{"-d"}, "find /var/lib/mysql -type f -exec touch {} \\;")
-	// if err != nil {
-	// 	return nil, err
-	// }
 	portsOutput, err := d.port(containername.String())
 	if err != nil {
 		return nil, err
